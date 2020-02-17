@@ -48,7 +48,7 @@ while True:
     cv2.imshow('frame', frame)
     cv2.imshow('Mask', mask)
     cv2.imshow('res', res)
-    if cv2.waitKey(5) & 0xFF == 27: 
+    if cv2.waitKey(5) & 0xFF == 27:
         break
 
     # Destroys all of the HighGUI windows. 
