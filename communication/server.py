@@ -2,6 +2,7 @@
 import socket
 
 TCP_IP = socket.gethostname()
+print(TCP_IP)
 TCP_PORT = 5005
 BUFFER_SIZE = 20  # Normally 1024, but we want fast response
 

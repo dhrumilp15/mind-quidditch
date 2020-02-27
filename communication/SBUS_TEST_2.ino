@@ -101,12 +101,13 @@ void loop()
 
     if (rcChannels[2] > 2000)
         rcChannels[2] = 1000;
-    delay(100);
+    delay(1000);
 
     if (currentMillis > sbusTime)
     {
 
         sbusPreparePacket(sbusPacket, rcChannels, false, false);
+        Serial.println(sbusPacket);
         Serial.write(sbusPacket, SBUS_PACKET_LENGTH);
 
         sbusTime = currentMillis + SBUS_UPDATE_RATE;

@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 import socket
 
-TCP_IP = "192.168.0.27"
+# TCP_IP = "192.168.0.27"
+TCP_IP = "DESKTOP-T40RD8H"
 # print(TCP_IP)
 TCP_PORT = 5005
 BUFFER_SIZE = 1024
