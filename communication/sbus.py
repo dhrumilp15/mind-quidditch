@@ -17,22 +17,24 @@ SBUS_FRAME_FOOTER = 0x00
 SBUS_FRAME_FOOTER_V2 = 0x04
 SBUS_STATE_FAILSAFE = 0x08
 SBUS_STATE_SIGNALLOSS = 0x04
-SBUS_UPDATE_RATE = 15 # ms
+SBUS_UPDATE_RATE = 15 * 1e-3 # ms
 
-def arduinomap(x : int, in_min: int, in_max: int, out_min: int, out_max: int) -> int:
+# def arduinomap(x : int, in_min: int, in_max: int, out_min: int, out_max: int) -> int:
+def arduinomap(x, in_min, in_max, out_min, out_max):
     '''
-        Map method in arduino implemented here
+        Map given data from a given range to a desired range - effectively normalizes data
         :return: Mapped data
     '''
     return (x - in_min) * (out_max - out_min) // (in_max - in_min) + out_min
 
-def sbusPreparePacket(packet: list, channels : list, isSignalLoss : bool, isFailSafe: bool)-> list:
+# def sbusPreparePacket(packet: list, channels : list, isSignalLoss : bool, isFailSafe: bool) -> list:
+def sbusPreparePacket(packet, channels, isSignalLoss, isFailSafe):
     '''
         Prepares the packet to be sent to the flight controller using the given packet
         :return: The final packet as a list
     '''
-    output = [None] * SBUS_CHANNEL_NUMBER
-    output[0] = 0
+    output = [0] * SBUS_CHANNEL_NUMBER
+    output[0] = 0x00
 
     for i in range(SBUS_CHANNEL_NUMBER):
         output[i] = arduinomap(channels[i], RC_CHANNEL_MIN, RC_CHANNEL_MAX, SBUS_MIN_OFFSET, SBUS_MAX_OFFSET)
@@ -71,38 +73,39 @@ def sbusPreparePacket(packet: list, channels : list, isSignalLoss : bool, isFail
 
     packet[23] = statebyte
     packet[24] = SBUS_FRAME_FOOTER_V2
-    return packet
+    return list(map(lambda byte: bin(byte)[2:].zfill(8),packet))
 
-# Initialize packets
+# Initialize packet
 sbuspacket = [None] * SBUS_PACKET_LENGTH
-rcChannels = [None] * SBUS_CHANNEL_NUMBER
-sbustime = 0
-
-# Default values in sbus packet
-for i in range(SBUS_CHANNEL_NUMBER):
-    rcChannels[i] = 1500
+rcChannels = [1500] * SBUS_CHANNEL_NUMBER
 rcChannels[2] = 1000
 rcChannels[4] = 1200
+sbustime = 0
 
 
-Serial = serial.Serial(
-        port='/dev/ttyS0', #    Replace ttyS0 with ttyAM0 for Pi1,Pi2,Pi0
-        baudrate = 115200, # Needed for flight controller
-        # Want SERIAL8E2
-        parity=serial.PARITY_EVEN,
-        stopbits=serial.STOPBITS_TWO,
-        bytesize=serial.EIGHTBITS
-)
-
+# Serial = serial.Serial(
+#         # port='/dev/ttyS0', #    Replace ttyS0 with ttyAM0 for Pi1,Pi2,Pi0
+#         port = '/dev/ttyAMA0',
+#         baudrate = 115200, # Needed for flight controller
+#         # Want SERIAL8E2
+#         parity=serial.PARITY_EVEN,
+#         stopbits=serial.STOPBITS_TWO,
+#         bytesize=serial.EIGHTBITS
+# )
+# last = None
 while True:
     currtime = time.time()
     
+    rcChannels[2] += 2
     if rcChannels[2] > 2000:
         rcChannels[2] = 1000
     time.sleep(100 * 1e-3)
     # rcChannels[2] += 2
     if currtime > sbustime:
         sbuspacket = sbusPreparePacket(sbuspacket, rcChannels, False, False)
-        Serial.write(sbuspacket[:SBUS_PACKET_LENGTH])
-
+        # Serial.write(bytearray(sbuspacket[:SBUS_PACKET_LENGTH]))
+        # Serial.write(sbuspacket[:SBUS_PACKET_LENGTH])
+        message = ''.join(sbuspacket)
+        print(message)
+        # last = message
         sbustime = currtime + SBUS_UPDATE_RATE
