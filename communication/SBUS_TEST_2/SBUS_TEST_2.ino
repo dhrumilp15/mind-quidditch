@@ -78,7 +78,7 @@ void setup()
     //throttle is channel 2
     rcChannels[2] = 1000;
     rcChannels[4] = 1200;
-    Serial.begin(100000, SERIAL_8E2);
+    Serial.begin(9600, SERIAL_8E2);
 }
 
 void loop()

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import time
 import serial
+from ctypes import c_uint8, c_ubyte
 
 # Constants 
 
@@ -45,7 +46,6 @@ def sbusPreparePacket(packet, channels, isSignalLoss, isFailSafe):
     
     if isFailSafe:
         statebyte |= SBUS_STATE_FAILSAFE
-    
     packet[0] = SBUS_FRAME_HEADER
 
     packet[1] = (output[0] & 0x07FF)
@@ -73,7 +73,9 @@ def sbusPreparePacket(packet, channels, isSignalLoss, isFailSafe):
 
     packet[23] = statebyte
     packet[24] = SBUS_FRAME_FOOTER_V2
-    return list(map(lambda byte: bin(byte)[2:].zfill(8),packet))
+    return packet
+    # return bytearray(packet)
+    # return list(map(lambda byte: bin(byte)[2:].zfill(8),packet))
 
 # Initialize packet
 sbuspacket = [None] * SBUS_PACKET_LENGTH
@@ -82,17 +84,19 @@ rcChannels[2] = 1000
 rcChannels[4] = 1200
 sbustime = 0
 
+Serial = serial.Serial(
+        port = '/dev/serial0', # Switch to AMA0 if needed
+        # baudrate = 9600
+        # For flight controller:
+        baudrate = 100000, 
+        parity=serial.PARITY_EVEN,
+        stopbits=serial.STOPBITS_TWO,
+        bytesize=serial.EIGHTBITS
+)
 
-# Serial = serial.Serial(
-#         # port='/dev/ttyS0', #    Replace ttyS0 with ttyAM0 for Pi1,Pi2,Pi0
-#         port = '/dev/ttyAMA0',
-#         baudrate = 115200, # Needed for flight controller
-#         # Want SERIAL8E2
-#         parity=serial.PARITY_EVEN,
-#         stopbits=serial.STOPBITS_TWO,
-#         bytesize=serial.EIGHTBITS
-# )
-# last = None
+def convtobyte(packet):
+    return list(map(lambda x: c_ubyte(x).value, packet))
+
 while True:
     currtime = time.time()
     
@@ -103,9 +107,8 @@ while True:
     # rcChannels[2] += 2
     if currtime > sbustime:
         sbuspacket = sbusPreparePacket(sbuspacket, rcChannels, False, False)
-        # Serial.write(bytearray(sbuspacket[:SBUS_PACKET_LENGTH]))
-        # Serial.write(sbuspacket[:SBUS_PACKET_LENGTH])
-        message = ''.join(sbuspacket)
-        print(message)
-        # last = message
+        final = convtobyte(sbuspacket)
+        print("Any greater than 255? {}".format(any(item > 255 for item in final)))
+        print(bytearray(final))
+        Serial.write(bytearray(final))
         sbustime = currtime + SBUS_UPDATE_RATE
