@@ -55,10 +55,20 @@ ballhigh = np.array([25,255,234])
 
 pts = deque(maxlen=args["buffer"])
 
-
 # 11.7 px for 36in, 1.57in diameter of ping pong ball
-def getdist(radius, ref_dist = (11.7, 36, 1.57)):
+def get_dist(radius, ref_dist = (11.7, 36, 1.57)):
     return  np.prod(ref_dist) / radius
+
+def get_hough_frame(frame, x,y):
+    if x and y:
+        # x, y = x, y
+        ymin = int(max(0, y - 2 * radius))
+        ymax = int(min(600, y + 2 * radius))
+        xmax = int(max(0, x - 2 * radius))
+        xmin = int(min(600, x + 2 * radius))
+    # print(f"ymin: {ymin}, ymax: {ymax}, xmax: {xmax}, xmin: {xmin}")
+    return frame[ymin:ymax, xmax:xmin]
+
 
 if not args.get("video", False):
     vs = VideoStream(src=0).start()
@@ -75,30 +85,32 @@ while True:
         break
 
     frame = imutils.resize(frame, width=600)
-    frame = cv2.GaussianBlur(frame,(3,3), 0)
+    frame = cv2.GaussianBlur(frame,(5,5), 0)
     
     graysc = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     hsv = cv2.cvtColor(frame,cv2.COLOR_BGR2HSV)
 
     # Colour Mask Implementation:
-    # mask = cv2.inRange(hsv, balllow, ballhigh)
-    # mask = cv2.erode(mask, None, iterations=2)
-    # mask = cv2.dilate(mask, None, iterations=2)
-    # cnts = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    # cnts = imutils.grab_contours(cnts)
-    # center, radius = None, None
-    
-    # if len(cnts) > 0:
-    #     c = max(cnts, key=cv2.contourArea)
-    #     ((x,y), radius) = cv2.minEnclosingCircle(c)
-    #     M = cv2.moments(c)
-    #     center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
-    #     if radius > 10:
-    #         cv2.circle(frame, (int(x), int(y)), int(radius), (0, 255, 255), 2)
-    #         cv2.circle(frame, center, 5, (0, 0, 255), -1)
-    #         if radius:
-    #             screenDebug(frame, f"radius(px): {radius:.4f}", f"Distance(in):{getdist(radius):.4f}")
-    #         pts.appendleft(center)
+    mask = cv2.inRange(hsv, balllow, ballhigh)
+    mask = cv2.erode(mask, None, iterations=2)
+    mask = cv2.dilate(mask, None, iterations=2)
+    cnts = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    cnts = imutils.grab_contours(cnts)
+    center, radius = (None, None), None
+    y, x = None, None
+    if len(cnts) > 0:
+        c = max(cnts, key=cv2.contourArea)
+        ((x,y), radius) = cv2.minEnclosingCircle(c)
+        # M = cv2.moments(c)
+        # center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
+        smallerframe = get_hough_frame(frame, x,y)
+        graysc = cv2.cvtColor(smallerframe, cv2.COLOR_BGR2GRAY)
+        # if radius > 10:
+            # cv2.circle(frame, (int(x), int(y)), int(radius), (0, 255, 255), 2)
+            # cv2.circle(frame, center, 5, (0, 0, 255), -1)
+            # if radius:
+            #     screenDebug(frame, f"radius(px): {radius:.4f}", f"Distance(in):{getdist(radius):.4f}")
+            # pts.appendleft(center)    
     # for i in range(1, len(pts)):
     #     if not pts[i-1] or not pts[i]:
     #         continue
@@ -110,29 +122,31 @@ while True:
     # abs_dst = cv2.convertScaleAbs(dst)
 
     # Canny edge detection
-    high = 300
+    high = 150
     edges = cv2.Canny(graysc, high // 2, high)
 
     # HoughCircles
-    # circles = cv2.HoughCircles(graysc,cv2.HOUGH_GRADIENT,1, 20, param1=200,param2=100,minRadius=0,maxRadius=0)
-    dp = 1
+    dp = 1.2
     minDist = 100
     accthresh = 30
-    circles = cv2.HoughCircles(graysc, cv2.HOUGH_GRADIENT, 1, minDist, param1=high,param2=accthresh,minRadius=0,maxRadius=200)
-    
-    if circles is not None:
-        circles = np.uint16(np.around(circles))
-        for i in circles[0,:]:
-            # draw the outer circle
-            cv2.circle(frame,(i[0],i[1]),i[2],(0,255,0),2)
-            # draw the center of the circle
-            cv2.circle(frame,(i[0],i[1]),2,(0,0,255),3)
-    
+    if x and y:
+        circles = cv2.HoughCircles(graysc, cv2.HOUGH_GRADIENT, 1, minDist, param1=high,param2=accthresh,minRadius=0,maxRadius=200)
+        print(circles)
+        if circles is not None:
+            circles = np.uint16(np.around(circles))
+            for i in circles[0,:]:
+                # draw the outer circle
+                cv2.circle(frame,(int(x + i[0] - 2 * radius), int(y + i[1] - 2 * radius)),i[2],(0,255,0),2)
+                # draw the center of the circle
+                cv2.circle(frame,(int(x + i[0] - 2 * radius), int(y + i[1]- 2 * radius)),2,(255,0,0),3)
+                screenDebug(frame, f"radius(px): {i[2]:.4f}", f"Distance(in):{get_dist(i[2]):.4f}")
+
     # Display the resulting framed
     cv2.imshow('frame', frame)
     # cv2.imshow('Colour mask',mask)
     # cv2.imshow('Laplacian', abs_dst)
     cv2.imshow('Canny', edges)
+    
     # cv2.imshow("Hough Circles", circles)
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
