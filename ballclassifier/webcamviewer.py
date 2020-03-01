@@ -32,7 +32,6 @@ args = vars(ap.parse_args())
 # balllow = np.array([28,98,63])
 # ballhigh = np.array([65,255,255])
 
-
 # # Another
 # balllow = np.array([35,43,117])
 # ballhigh = np.array([57,113,152])
