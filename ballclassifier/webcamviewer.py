@@ -22,18 +22,6 @@ def screenDebug(frame, *messages):
     for index, message in enumerate(messages):
         cv2.putText(frame, message, (defwidth, defheight - index * 30), font, fontScale, fontColor, thickness, cv2.LINE_AA)
 
-def callback(value):
-    pass
-
-def setup_trackbars(range_filter):
-    cv2.namedWindow("Trackbars", 0)
-
-    for i in ["MIN", "MAX"]:    
-        v = 0 if i == "MIN" else 255
-
-        for j in range_filter:
-            cv2.createTrackbar("%s_%s" % (j, i), "Trackbars", v, 255, callback)
-
 ap = argparse.ArgumentParser()
 ap.add_argument("-v", "--video",
 	help="path to the (optional) video file")
@@ -43,7 +31,6 @@ args = vars(ap.parse_args())
 # Green
 # balllow = np.array([28,98,63])
 # ballhigh = np.array([65,255,255])
-
 
 # # Another
 # balllow = np.array([35,43,117])
@@ -56,10 +43,23 @@ ballhigh = np.array([25,255,234])
 pts = deque(maxlen=args["buffer"])
 
 # 11.7 px for 36in, 1.57in diameter of ping pong ball
-def get_dist(radius, ref_dist = (11.7, 36, 1.57)):
-    return  np.prod(ref_dist) / radius
+def get_dist(radius, ref_dist = (11.7, 36, 1.57)) -> float:
+    '''
+        Gets the distance from the object to the camera
+        :param radius: The radius of the ball (in px)
+        :param ref_dist: Conditions that are true, calculated with the camera's focal length
+        :return: The distance from the object to the camera
+    '''
+    return np.prod(ref_dist) / radius
 
-def get_hough_frame(frame, x,y):
+def get_hough_frame(frame, x,y) -> list:
+    '''
+    Gets a smaller window of the frame for the Hough transform
+    :param frame: The original frame
+    :param x: The x value of the center of the current best circle
+    :param y: The y value of the center of the current base circle
+    :return: A smaller window as an ndarray
+    '''
     if x and y:
         # x, y = x, y
         ymin = int(max(0, y - 2 * radius))
@@ -76,7 +76,6 @@ else:
     vs = cv2.VideoCapture(args["video"])
 
 while True:
-    
     # Capture frame-by-frame
     frame = vs.read()
 
@@ -131,7 +130,7 @@ while True:
     accthresh = 30
     if x and y:
         circles = cv2.HoughCircles(graysc, cv2.HOUGH_GRADIENT, 1, minDist, param1=high,param2=accthresh,minRadius=0,maxRadius=200)
-        print(circles)
+
         if circles is not None:
             circles = np.uint16(np.around(circles))
             for i in circles[0,:]:
@@ -141,13 +140,10 @@ while True:
                 cv2.circle(frame,(int(x + i[0] - 2 * radius), int(y + i[1]- 2 * radius)),2,(255,0,0),3)
                 screenDebug(frame, f"radius(px): {i[2]:.4f}", f"Distance(in):{get_dist(i[2]):.4f}")
 
-    # Display the resulting framed
     cv2.imshow('frame', frame)
     # cv2.imshow('Colour mask',mask)
     # cv2.imshow('Laplacian', abs_dst)
     cv2.imshow('Canny', edges)
-    
-    # cv2.imshow("Hough Circles", circles)
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
