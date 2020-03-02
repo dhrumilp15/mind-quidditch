@@ -130,7 +130,7 @@ while True:
     accthresh = 30
     if x and y:
         circles = cv2.HoughCircles(graysc, cv2.HOUGH_GRADIENT, 1, minDist, param1=high,param2=accthresh,minRadius=0,maxRadius=200)
-        # print(circles)
+
         if circles is not None:
             circles = np.uint16(np.around(circles))
             for i in circles[0,:]:
@@ -140,7 +140,6 @@ while True:
                 cv2.circle(frame,(int(x + i[0] - 2 * radius), int(y + i[1]- 2 * radius)),2,(255,0,0),3)
                 screenDebug(frame, f"radius(px): {i[2]:.4f}", f"Distance(in):{get_dist(i[2]):.4f}")
 
-    # Display the resulting frames
     cv2.imshow('frame', frame)
     # cv2.imshow('Colour mask',mask)
     # cv2.imshow('Laplacian', abs_dst)
