@@ -1,5 +1,7 @@
 .vscode/
 .ionide/
+.ionide
+.vscode
 .ipynb_checkpoints/
 
 tempCodeRunnerFile.py

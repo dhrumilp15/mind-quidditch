@@ -12,6 +12,11 @@
 #define SBUS_STATE_FAILSAFE 0x08
 #define SBUS_STATE_SIGNALLOSS 0x04
 #define SBUS_UPDATE_RATE 15 //ms
+#include <iostream>
+#include <chrono>
+#include <ctime>
+
+using namespace std;
 
 void sbusPreparePacket(uint8_t packet[], int channels[], bool isSignalLoss, bool isFailsafe)
 {
@@ -78,12 +83,12 @@ void setup()
     //throttle is channel 2
     rcChannels[2] = 1000;
     rcChannels[4] = 1200;
-    Serial.begin(9600, SERIAL_8E2);
+    // Serial.begin(9600, SERIAL_8E2);
 }
 
 void loop()
 {
-    uint32_t currentMillis = millis();
+    auto currentMillis = chrono::system_clock::now();
 
     /*
      * Here you can modify values of rcChannels while keeping it in 1000:2000 range
@@ -101,15 +106,27 @@ void loop()
 
     if (rcChannels[2] > 2000)
         rcChannels[2] = 1000;
-    delay(100);
 
-    if (currentMillis > sbusTime)
+    Sleep(100);
+
+    cout << "Elapsed Time: " << (chrono::system_clock::now() - currentMillis).count();
+    if ((uint32_t)(chrono::system_clock::now() - currentMillis).count() > sbusTime)
     {
 
         sbusPreparePacket(sbusPacket, rcChannels, false, false);
-//        Serial.println(sbusPacket);
-        Serial.write(sbusPacket, SBUS_PACKET_LENGTH);
+        //        Serial.println(sbusPacket);
+        cout << (sbusPacket, SBUS_PACKET_LENGTH);
 
         sbusTime = currentMillis + SBUS_UPDATE_RATE;
     }
+}
+
+int main()
+{
+    setup();
+    while (true)
+    {
+        loop();
+    }
+    return 0;
 }
