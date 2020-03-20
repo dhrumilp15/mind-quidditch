@@ -28,12 +28,12 @@ def setup_trackbars(range_filter):
 
 def get_arguments():
     ap = argparse.ArgumentParser()
-    ap.add_argument('-f', '--filter', required=True,
-                    help='Range filter. RGB or HSV')
+    ap.add_argument('-f', '--filter', required=False,
+                    help='Range filter. RGB or HSV', default='HSV')
     ap.add_argument('-i', '--image', required=False,
                     help='Path to the image')
     ap.add_argument('-w', '--webcam', required=False,
-                    help='Use webcam', action='store_true')
+                    help='Use webcam', action='store_true', default=True)
     ap.add_argument('-p', '--preview', required=False,
                     help='Show a preview of the image after applying the mask',
                     action='store_true')
