@@ -3,6 +3,11 @@
 .ionide
 .vscode
 .ipynb_checkpoints/
-ball_images/
+calibrate_images/
+*.db
 
 tempCodeRunnerFile.py
+*.png
+*.txt
+rename.py
+calibrate_camera.py
