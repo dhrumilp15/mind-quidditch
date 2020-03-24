@@ -5,6 +5,8 @@
 .ipynb_checkpoints/
 calibrate_images/
 *.db
+__pycache__/
+*.pyc
 
 tempCodeRunnerFile.py
 *.png
