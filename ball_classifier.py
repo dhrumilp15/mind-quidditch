@@ -116,12 +116,12 @@ class BallClassifier:
         if cres is not None:
             center, radius = cres
             # Updating Center and Radius
-            # res = self.hough(frame, center, radius)
-            # if res is not None:
-            #     center, radius = res
-            #     dres = self.hough(frame, res[0], res[1])
-            #     if dres is not None:
-            #         center, radius = dres
+            res = self.hough(frame, center, radius)
+            if res is not None:
+                center, radius = res
+                dres = self.hough(frame, res[0], res[1])
+                if dres is not None:
+                    center, radius = dres
         return center, radius
 
     def main(self):

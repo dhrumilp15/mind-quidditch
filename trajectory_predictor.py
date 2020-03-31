@@ -11,7 +11,6 @@ import time
 from time import sleep
 from utils import screenDebug
 from calibrate import calibrate_camera
-# logging.getLogger().setLevel(logging.DEBUG)
 
 # fig = plt.figure()
 # ax = Axes3D(fig)
@@ -23,21 +22,35 @@ from calibrate import calibrate_camera
 # plt.ion()
 
 class TrajectoryPredictor(object):
-    '''Predicts the trajectory of a ball identified by the BallClassifier'''
-    def __init__(self, args):        
+    '''Predicts the trajectory of a ball identified by the BallClassifier
+    
+    Predicts the trajectory ball by predicting its intial position and velocity.
+    All attributes are ndarrays unless otherwise noted.
+
+    Attributes:
+        self.pos_history: The record of position measurements.
+        self.timestamps: The record of time measurements.
+        self.position: The current position of the drone.
+        self.position: The current rotation vector of the drone.
+
+        self.a: The world acceleration. Note that the trajectory predictor uses
+                x as left-right, y as up-down, and z as depth. This is why the y-value is -9.8
+        self.camera_matrix: The camera matrix acquired from calibration images.
+        self.dist: The matrix of distortion coefficients from calibration images.
+        self.BC: The BallClassifier object used to identify where the ball is in the image.
+        self.vs: The VideoCapture object to be analyzed
+    '''
+
+    def __init__(self, args): 
+        '''Inits TrajectoryPredictor with important information'''       
         self.pos_history = np.array([],dtype=np.float32)
         self.timestamps = []
         self.position = np.array([0,0,0], dtype=np.float32)
         self.rvec = np.array([0,0,0], dtype=np.float32)
 
-        # Attributes of the ball
-        self.pb_0 = np.array([0,0,0], dtype=np.float32)
-        self.vb_0 = np.array([0,0,0], dtype=np.float32)
-
         # Assume acceleration is uniform and is Earth's gravitational constant (We're on Earth friends... or are we?)
         self.a = np.array([0,-9.8,0], dtype=np.float32)
         self.camera_matrix, self.dist = calibrate_camera()
-        # fovx, fovy, self.fL, self.pP, aR = cv2.calibrationMatrixValues(self.camera_matrix, (640, 360), 1, 1)
         self.BC = BallClassifier(args)
         if args.get("video", False):
             self.vs = cv2.VideoCapture(args["video"])
@@ -66,8 +79,6 @@ class TrajectoryPredictor(object):
 
     def find_ball_global_position(self, points, dist) -> np.array:
         '''Calculates the global position of given points knowing their depth.
-
-        Calculates the global position of the ball's center using its depth.
         
         Args:
             points: An Nx2 ndarray of points as they appear in the camera screen
@@ -94,6 +105,18 @@ class TrajectoryPredictor(object):
         return res
     
     def find_initial_conditions(self, path, timestamps):
+        '''Calculates the initial position and velocity of the ball
+        
+        Calculates the initial position and velocity of the ball from timestamps and the path.
+        The number of timestamps must be equal to the number of ball position measurements.
+        
+        Args:
+            path: An Nx3 ndarray of positions of the ball
+            timestamps: A 1xN ndarray of timestamps
+
+        Returns:
+            A tuple containing the initial position and initial velocity in that order. 
+        '''
         finals = np.array([], dtype=np.float32)
         fig, (ax, ax1, ax2) = plt.subplots(1, 3)
         # print(path)
@@ -110,21 +133,24 @@ class TrajectoryPredictor(object):
         ])
         
         v_0 = (p_1 - p_0) / timestamps[1] - 0.5*self.a * timestamps[1]
-        initials = np.array([p_0,v_0], dtype=np.float32)
-        
-        if len(finals) == 0:
-            finals = initials
-        else:
-            finals = np.vstack((finals, initials))
-        return finals
+        return p_0, v_0
 
     def find_interception_point(self, p_0, v_0):
-        '''Finds the point where the ball intersects the y plane of the drone's current position
+        '''Finds the point where the ball will be closest to the drone's current position.
+
+        Finds the point that will take the longest to achieve to give
+        the drone ample opportunity to catch the ball.
+        
+        Args:
+            p_0: The initial position of the ball
+            v_0: The initial velocity of the ball
+        
+        Returns:
+            The interception point as a single 1x3 ndarray
         '''
         t_roots = np.roots([0.5*self.a, v_0, p_0 - self.position])
         t = max(t_roots)
-        intercept = np.polyval([0.5*self.a, v_0, p_0], t)
-        return intercept
+        return np.polyval([0.5*self.a, v_0, p_0], t)
 
     def main(self):
         while True:
@@ -159,7 +185,8 @@ class TrajectoryPredictor(object):
                 logging.info(self.pos_history)
                 
                 if len(self.pos_history) > 1:
-                    initials = self.find_initial_conditions(self.pos_history, self.timestamps)
+                    p_0, v_0 = self.find_initial_conditions(self.pos_history, self.timestamps)
+                    interception = self.find_interception_point(p_0, v_0)
                 
                 # ax.scatter3D(xs = self.pos_history[-1][0], ys = self.pos_history[-1][1], zs = self.pos_history[-1][2])
                 # fig.canvas.draw()
