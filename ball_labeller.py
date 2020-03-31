@@ -4,7 +4,7 @@ import os
 import imutils
 import json
 
-class Ball_Labeller:
+class BallLabeller:
     def __init__(self):
         self.outfile = "ball_images/images.json"
         open(self.outfile, 'w').close()
@@ -48,5 +48,5 @@ class Ball_Labeller:
             f.write(json.dumps(self.record, indent=4))
         cv2.destroyAllWindows()
 if __name__ == "__main__":
-    BL = Ball_Labeller()
+    BL = BallLabeller()
     BL.main()

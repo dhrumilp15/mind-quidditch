@@ -1,7 +1,0 @@
-{
-    "python.pythonPath": "C:\\Users\\User\\Anaconda3\\envs\\neurogang\\python.exe",
-    "files.associations": {
-        "chrono": "cpp",
-        "thread": "cpp"
-    }
-}

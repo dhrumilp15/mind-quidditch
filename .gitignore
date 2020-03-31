@@ -1,8 +1,22 @@
-.vscode/
-.ionide/
-.ionide
-.vscode
-.ipynb_checkpoints/
-ball_images/
+# IDE Files
+**/.vscode/
+**/.ionide/
+**/.ipynb_checkpoints/
 
+# IDE Specific
+*.db
 tempCodeRunnerFile.py
+
+# Standard python
+__pycache__/
+*.pyc
+
+# Camera intrinsics that's different for each camera
+*.npy
+
+# Debug Images and Files
+*.png
+*.txt
+
+# Helper files I created that don't need to be in the main repo
+rename.py
