@@ -11,13 +11,12 @@ tempCodeRunnerFile.py
 __pycache__/
 *.pyc
 
-# Folder of calbrating images that should be different per person
-calibrate_images/
+# Camera intrinsics that's different for each camera
+*.npy
 
-# Debug Images / Files
+# Debug Images and Files
 *.png
 *.txt
 
 # Helper files I created that don't need to be in the main repo
 rename.py
-calibrate_camera.py

@@ -6,193 +6,174 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import json
 import logging
-# logging.getLogger().setLevel(logging.DEBUG)
 import os
+import time
+from time import sleep
+from utils import screenDebug
+from calibrate import calibrate_camera
+# logging.getLogger().setLevel(logging.DEBUG)
 
-fig = plt.figure()
-ax = fig.add_subplot(111, projection='3d')
-ax.elev = 0
-ax.azim = 60
-ax.set_xlabel('x')
-ax.set_ylabel('y')
-ax.set_zlabel('z')
-plt.ion()
+# fig = plt.figure()
+# ax = Axes3D(fig)
+# ax.elev = 30
+# ax.azim = 45
+# ax.set_xlabel('x')
+# ax.set_ylabel('y')
+# ax.set_zlabel('z')
+# plt.ion()
 
-class TrajectoryPredictor:
-    def __init__(self, args):
-        if args.get("video", False):
-            self.vs = cv2.VideoCapture(args["video"])
-        else:
-            self.vs = cv2.VideoCapture(0)
-        
-        self.BC = BallClassifier(args)
-        self.record = []
+class TrajectoryPredictor(object):
+    '''Predicts the trajectory of a ball identified by the BallClassifier'''
+    def __init__(self, args):        
+        self.pos_history = np.array([],dtype=np.float32)
+        self.timestamps = []
+        self.position = np.array([0,0,0], dtype=np.float32)
+        self.rvec = np.array([0,0,0], dtype=np.float32)
 
         # Attributes of the ball
         self.pb_0 = np.array([0,0,0], dtype=np.float32)
-        self.v_0 = np.array([0,0,0], dtype=np.float32)
+        self.vb_0 = np.array([0,0,0], dtype=np.float32)
 
         # Assume acceleration is uniform and is Earth's gravitational constant (We're on Earth friends... or are we?)
-        self.a = np.array([0,0,-9.8], dtype=np.float32)
-        self.camera_matrix = self.calibrate_camera()
-        fovx, fovy, self.fL, pP, aR = cv2.calibrationMatrixValues(self.camera_matrix, (1280, 720), 1, 1)
-    
+        self.a = np.array([0,-9.8,0], dtype=np.float32)
+        self.camera_matrix, self.dist = calibrate_camera()
+        # fovx, fovy, self.fL, self.pP, aR = cv2.calibrationMatrixValues(self.camera_matrix, (640, 360), 1, 1)
+        self.BC = BallClassifier(args)
+        if args.get("video", False):
+            self.vs = cv2.VideoCapture(args["video"])
+        else:
+            self.vs = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+            self.vs.set(cv2.CAP_PROP_FRAME_HEIGHT, 360)
+            self.vs.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+
     def get_dist(self, radius) -> float:
-        '''
-            Gets the distance in inches from the object to the camera
-            :param radius: The radius of the ball (in px)
-            :param ref_dist: Conditions that are true, calculated with the camera's focal length
-            :return: The distance from the object to the camera
-        '''
-        focal_length = self.fL # Accurate to 10 mm
-        # focal_length = self.camera_matrix[0, 0] * 25.4/96
-        # logging.info(f'Focal Length: {self.fL}')
-        dist = focal_length * 19.939 * 720 / radius
-        logging.info(f'''Focal Length: {focal_length}
-            Estimated Distance: {dist}''')
-        return dist
-    
-    def calibrate_camera(self):
-        try:
-            return np.loadtxt('calibrate_images/out.txt', dtype=np.float32)
-            # f = open('calibrate_images/params.json')
-            # saved_params = json.loads(f.read())
-            # self.camera_matrix = saved_params["camera_matrix"]
-        except OSError:
-            # termination criteria
-            criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
-
-            # prepare object points, like (0,0,0), (1,0,0), (2,0,0) ....,(6,5,0)
-            pattern_size = (9,6)
-            objp = np.zeros((np.prod(pattern_size),3), np.float32)
-            objp[:,:2] = np.mgrid[0:9, 0:6].T.reshape(-1,2)
-            objp[:,:2] = np.indices(pattern_size).T.reshape(-1,2)
-            objp *= 2.1
-
-            # Arrays to store object points and image points from all the images.
-            objpoints = [] # 3d point in real world space
-            imgpoints = [] # 2d points in image plane.
-
-            images = ["calibrate_images/" + name for name in os.listdir("./calibrate_images/") if name.endswith(".jpg") and int(name[:name.index('.jpg')])]
-            # logging.info(images)
-
-            for fname in images:
-                img = cv2.imread(fname)
-                gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
-
-                # Find the chess board corners
-                ret, corners = cv2.findChessboardCorners(gray, pattern_size)
-
-                # If found, add object points, image points (after refining them)
-                if ret:
-                    corners = cv2.cornerSubPix(gray,corners,(5,5),(-1,-1), criteria)
-                    imgpoints.append(corners.reshape(-1, 2))
-                    objpoints.append(objp)
-
-            rms, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(objpoints, imgpoints, gray.shape[::-1],None,None)
-            logging.info(f'''
-            ---------------------------
-                RMS:
-                {rms}
-                Camera Matrix:
-                {mtx}
-                Dist:
-                {dist.ravel()}
-                Rvecs:
-                {rvecs}
-                Tvecs:
-                {tvecs}
-            ---------------------------
-            ''')
-            np.savetxt('out.txt', mtx)
-            # img = cv2.imread('calibrate_images/59.jpg')
-            # h,  w = img.shape[:2]
-            # newcameramtx, roi=cv2.getOptimalNewCameraMatrix(mtx,dist,(w,h),1,(w,h))
-            # # undistort
-            # dst = cv2.undistort(img, mtx, dist, None, newcameramtx)
-
-            # # crop the image
-            # x,y,w,h = roi
-            # dst = dst[y:y+h, x:x+w]
-            # cv2.imwrite('calibresult.png',dst)
+        '''Gets the distance (in mm) from the object to the camera
             
-            # TODO: ERROR LOGGING in separate class
-            # mean_error = 0
-            # for i in range(len(objpoints)):
-            #     imgpoints2, _ = cv2.projectPoints(objpoints[i], rvecs[i], tvecs[i], mtx, dist)
-            #     error = cv2.norm(imgpoints[i], imgpoints2, cv2.NORM_L2) / len(imgpoints2)
-            #     mean_error += error
-            # mean_error /= len(objpoints)
-            # logging.info(f"Reprojection Error: {mean_error}")
-            return mtx
+        Calculates the distance in mm from the object to the camera using a reference height
+        of the ping pong ball (19.939 mm) and the average focal length
 
-    def find_ball_global_position(self, point, Z):
-        undistorted = np.squeeze(cv2.undistortPoints(np.array(point, dtype=np.float32), self.camera_matrix, Z, P = self.camera_matrix))
+        Args:
+            radius: The radius (in px) of the ball
+        
+        Returns:
+            The distance (in mm) from the object to the camera
+        '''
+        focal_length = np.average([self.camera_matrix[0, 0], self.camera_matrix[1, 1]]) # focal length in px
+        h_world = 19.939
+        dist = focal_length * h_world / radius
+        logging.info(f'Estimated Distance: {dist}')
+        return dist
 
+    def find_ball_global_position(self, points, dist) -> np.array:
+        '''Calculates the global position of given points knowing their depth.
+
+        Calculates the global position of the ball's center using its depth.
+        
+        Args:
+            points: An Nx2 ndarray of points as they appear in the camera screen
+            dist: A scalar distance of an object from a camera
+        
+        Returns:
+            A Nx3 ndarray of global positions
+        '''
         f_x = self.camera_matrix[0, 0]
         f_y = self.camera_matrix[1, 1]
         c_x = self.camera_matrix[0, 2]
         c_y = self.camera_matrix[1, 2]
-        return np.array([((undistorted[0] - c_x) / f_x) * Z, ((undistorted[1] - c_y) / f_y) * Z, Z], dtype=np.float32)
+        
+        res = np.array([])
+        for index, point in enumerate(points):
+            A = ((point[0] - c_x) / f_x)
+            B = ((point[1] - c_y) / f_y)
+            Z = np.sqrt(dist[index]**2 / (A**2 + B**2 + 1))
+            position = np.array([A*Z, B*Z, Z], dtype=np.float32)
+            if len(res) == 0:
+                res = position
+            else:
+                res = np.vstack((res,position))
+        return res
+    
+    def find_initial_conditions(self, path, timestamps):
+        finals = np.array([], dtype=np.float32)
+        fig, (ax, ax1, ax2) = plt.subplots(1, 3)
+        # print(path)
+        
+        X_coeffs = np.polyfit(timestamps, path[:,0], 1)
+        Y_coeffs = np.polyfit(timestamps, path[:,1], 2)
+        Z_coeffs = np.polyfit(timestamps, path[:,2], 1)
+        
+        p_0 = np.array([X_coeffs[-1], Y_coeffs[-1], Z_coeffs[-1]], dtype=np.float32)
+        p_1 = np.array([
+            np.polyval(X_coeffs, timestamps[1]),
+            np.polyval(Y_coeffs, timestamps[1]),
+            np.polyval(Z_coeffs, timestamps[1]),
+        ])
+        
+        v_0 = (p_1 - p_0) / timestamps[1] - 0.5*self.a * timestamps[1]
+        initials = np.array([p_0,v_0], dtype=np.float32)
+        
+        if len(finals) == 0:
+            finals = initials
+        else:
+            finals = np.vstack((finals, initials))
+        return finals
+
+    def find_interception_point(self, p_0, v_0):
+        '''Finds the point where the ball intersects the y plane of the drone's current position
+        '''
+        t_roots = np.roots([0.5*self.a, v_0, p_0 - self.position])
+        t = max(t_roots)
+        intercept = np.polyval([0.5*self.a, v_0, p_0], t)
+        return intercept
 
     def main(self):
         while True:
             ret, frame = self.vs.read()
+            self.timestamps.append(time.time())
             if not ret:
                 break
+            new_camera_matrix, roi = cv2.getOptimalNewCameraMatrix(self.camera_matrix, self.dist, (frame.shape[1], frame.shape[0]), 1, (frame.shape[1], frame.shape[0]))
+            # Undistort the frame before computing any measurements
+            frame = cv2.undistort(src=frame, cameraMatrix=self.camera_matrix, distCoeffs=self.dist, newCameraMatrix=new_camera_matrix)
+            frame = cv2.bilateralFilter(frame, 5, 100, 100)
             center, radius = self.BC.find_center_and_radius(frame)
             
             if center is not None and radius is not None:
                 dist_hat = self.get_dist(radius) # Predicted distance
-                p_t = self.find_ball_global_position(center, dist_hat)
-                
+                p_t = self.find_ball_global_position([center], dist_hat)
+                if len(self.pos_history) > 1:
+                    v_t = (p_t - self.pos_history[-1]) / time.time() - self.timestamps[-1]
+                pos = center[0] - self.camera_matrix[0, 2], center[1] - self.camera_matrix[1,2]
+                print(f"2D POS: {pos}")
+                print(f"3D POS: {p_t}\n")
+
                 cv2.circle(img=frame,center=center, radius= int(radius), color= (0,255,0), thickness=2)
                 cv2.circle(img=frame,center=center, radius=2, color= (255,0,0), thickness=2)
-                self.screenDebug(frame, f"radius(px): {radius:.4f}", f"Distance(mm):{self.get_dist(radius):.4f}")
                 
-                self.record.append(p_t)
-                logging.info(self.record)
-                record = np.array(self.record, dtype=np.float32)
-                logging.info(record)
-
-                ax.scatter(xs=record[:,0], ys=record[:,1], zs =record[:,2])#, marker=".", s=20, c="goldenrod", alpha=0.6)
-                fig.canvas.draw()
-                plt.show()
+                screenDebug(frame, f"radius: {radius:.4f} px", f"Distance:{self.get_dist(radius):.4f} mm")
+                
+                if len(self.pos_history) == 0:
+                    self.pos_history = np.array([p_t])
+                else:
+                    self.pos_history = np.vstack((self.pos_history, p_t))
+                logging.info(self.pos_history)
+                
+                if len(self.pos_history) > 1:
+                    initials = self.find_initial_conditions(self.pos_history, self.timestamps)
+                
+                # ax.scatter3D(xs = self.pos_history[-1][0], ys = self.pos_history[-1][1], zs = self.pos_history[-1][2])
+                # fig.canvas.draw()
+                # plt.show()
             cv2.imshow('frame', frame)
 
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
-    
-    def screenDebug(self, frame, *messages):
-        '''
-        logging.infos a given string to the window supplied by frame
-        :param frame: The window on which the message will be displayed
-        :param message: The string to show on the given frame
-        '''
-        height, width, channels = frame.shape
-        font                    = cv2.FONT_HERSHEY_SIMPLEX
-        defwidth                = 10
-        defheight               = height - 20
-        fontScale               = 1
-        fontColor               = (255,255,255)
-        thickness               = 1
-        for index, message in enumerate(messages):
-            cv2.putText(frame, message, (defwidth, defheight - index * 30), font, fontScale, fontColor, thickness, cv2.LINE_AA)
 
 def configure_args():
     ap = argparse.ArgumentParser()
-    ap.add_argument("-v", "--video", help="path to the (optional) video file")
+    ap.add_argument("-v", "--video", help="path to the (optional) video file", default=None)
     ap.add_argument("-b", "--buffer", type=int, default=64, help="max buffer size")
     return vars(ap.parse_args())
-
-def project_sample_point(points, intrinsic, distortion = np.array([0,0,0,0], dtype=np.float32)):
-        rvec = np.array([[0,0,0]], dtype=np.float32)
-        logging.info(f"Rot. Mat for projection{cv2.Rodrigues(rvec)[0]}")
-        tvec = np.array([0,0,0], dtype=np.float32)
-        result, jac = cv2.projectPoints(points, rvec, tvec, intrinsic, distortion)
-        logging.info(f"Projected Sample Point has shape {np.squeeze(result, axis=1).shape}")
-        logging.info(f"Projected Sample Point: {np.squeeze(result, axis = 1)}")
-        return np.squeeze(result, axis=1)
 
 if __name__ == "__main__":
     args = configure_args()

@@ -7,7 +7,10 @@ import os
 import imutils
 import json
 import logging
+from utils import screenDebug
+from calibrate import calibrate_camera
 # logging.getLogger().setLevel(logging.INFO)
+
 # plushie
 # balllow = np.array([32, 62, 67])
 # ballhigh = np.array([51, 255, 255])
@@ -30,7 +33,7 @@ ballhigh = np.array([21,255,255])
 
 class BallClassifier:
     def __init__(self, args, imgiter=None):
-        self.pts = deque(maxlen=args["buffer"])
+        self.pts = deque(maxlen=args.get("buffer", 64))
         self.args = args
         self.vs = None
         self.record = []
@@ -43,28 +46,10 @@ class BallClassifier:
             self.vs = cv2.VideoCapture(args["video"])
         else:
             self.vs = cv2.VideoCapture(0)
-        
+            self.camera_matrix, self.dist = calibrate_camera()
         if self.vs is not None:
             self.vs.set(cv2.CAP_PROP_FPS, 30)
-            # self.vs.set(cv2.CAP_PROP_FRAME_WIDTH,1280)
-            # self.vs.set(cv2.CAP_PROP_FRAME_HEIGHT,720)
     
-    def screenDebug(self, frame, *messages):
-        '''
-        Prints a given string to the window supplied by frame
-        :param frame: The window on which the message will be displayed
-        :param message: The string to show on the given frame
-        '''
-        height, width, channels = frame.shape
-        font                    = cv2.FONT_HERSHEY_SIMPLEX
-        defwidth                = 10
-        defheight               = height - 20
-        fontScale               = 1
-        fontColor               = (255,255,255)
-        thickness               = 1
-        for index, message in enumerate(messages):
-            cv2.putText(frame, message, (defwidth, defheight - index * 30), font, fontScale, fontColor, thickness, cv2.LINE_AA)
-
     def get_hough_frame(self, frame, center, radius, multiplier = 1.2) -> list:
         '''
         Gets a smaller window of the frame for the Hough transform
@@ -79,9 +64,9 @@ class BallClassifier:
         if x and y:
             # x, y = x, y
             ymin = int(max(0, y - multiplier * radius))
-            ymax = int(min(1280, max(0, y + multiplier * radius)))
+            ymax = int(min(frame.shape[0], max(0, y + multiplier * radius)))
             xmax = int(max(0, x - multiplier * radius))
-            xmin = int(min(720, max(0, x + multiplier * radius)))
+            xmin = int(min(frame.shape[1], max(0, x + multiplier * radius)))
         frame = frame[ymin:ymax, xmax:xmin]
         return frame
     
@@ -110,7 +95,7 @@ class BallClassifier:
         mask = cv2.inRange(hsv, balllow, ballhigh)
         mask = cv2.erode(mask, None, iterations=3)
         mask = cv2.dilate(mask, None, iterations=3)
-        cnts, hier = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        cnts, hier = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         radius = None
         y, x = None, None
         if len(cnts) > 0:
@@ -122,7 +107,7 @@ class BallClassifier:
     def grab_calibration_points(self, center, radius):
         x, y = center
         r = radius
-        return [(x,y), (x, y + r), (x, y - r), (x + r, y), (x - r, y), (x + r*np.cos(np.pi/4), y + r * np.sin(np.pi/4))]
+        return [(x,y), (x, y + r), (x, y - r), (x + r, y), (x - r, y), (x + r/np.sqrt(2), y + r/np.sqrt(2))]
     
     def find_center_and_radius(self, frame):
         # Acquiring Center and Radius
@@ -131,12 +116,12 @@ class BallClassifier:
         if cres is not None:
             center, radius = cres
             # Updating Center and Radius
-            res = self.hough(frame, center, radius)
-            if res is not None:
-                center, radius = res
-                dres = self.hough(frame, res[0], res[1])
-                if dres is not None:
-                    center, radius = dres
+            # res = self.hough(frame, center, radius)
+            # if res is not None:
+            #     center, radius = res
+            #     dres = self.hough(frame, res[0], res[1])
+            #     if dres is not None:
+            #         center, radius = dres
         return center, radius
 
     def main(self):
@@ -153,6 +138,7 @@ class BallClassifier:
                 ret, frame = self.vs.read()
                 if not ret:
                     break
+            frame = cv2.undistort(frame, self.camera_matrix, self.dist)
             frame = cv2.bilateralFilter(frame, 5, 100, 100)
             
             center, radius = self.find_center_and_radius(frame)
@@ -160,7 +146,7 @@ class BallClassifier:
                 self.record.append((center, radius))
                 cv2.circle(img=frame,center=center, radius= int(radius), color= (0,255,0), thickness=2)
                 cv2.circle(img=frame,center=center, radius=2, color= (255,0,0), thickness=2)
-                self.screenDebug(frame, f"radius(px): {radius:.4f}")
+                screenDebug(frame, f"radius(px): {radius:.4f}")
             if self.imgiter is not None:
                 while True:
                     cv2.imshow(title,frame)
@@ -180,7 +166,7 @@ class BallClassifier:
         # When everything done, release the capture
         cv2.destroyAllWindows()
 
-def configure_args():
+def configure_args() -> dict:
     ap = argparse.ArgumentParser()
     ap.add_argument("-v", "--video", help="path to the (optional) video file")
     ap.add_argument("-b", "--buffer", type=int, default=64, help="max buffer size")
