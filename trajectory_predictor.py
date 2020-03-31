@@ -40,9 +40,8 @@ class TrajectoryPredictor(object):
         self.BC: The BallClassifier object used to identify where the ball is in the image.
         self.vs: The VideoCapture object to be analyzed
     '''
-
-    def __init__(self, args): 
-        '''Inits TrajectoryPredictor with important information'''       
+    
+    def __init__(self, args):
         self.pos_history = np.array([],dtype=np.float32)
         self.timestamps = []
         self.position = np.array([0,0,0], dtype=np.float32)
@@ -51,6 +50,11 @@ class TrajectoryPredictor(object):
         # Assume acceleration is uniform and is Earth's gravitational constant (We're on Earth friends... or are we?)
         self.a = np.array([0,-9.8,0], dtype=np.float32)
         self.camera_matrix, self.dist = calibrate_camera()
+
+        # Assume acceleration is uniform and is Earth's gravitational constant (We're on Earth friends... or are we?)
+        self.a = np.array([0,-9.8,0], dtype=np.float32)
+        self.camera_matrix, self.dist = calibrate_camera()
+        # fovx, fovy, self.fL, self.pP, aR = cv2.calibrationMatrixValues(self.camera_matrix, (640, 360), 1, 1)
         self.BC = BallClassifier(args)
         if args.get("video", False):
             self.vs = cv2.VideoCapture(args["video"])
@@ -152,6 +156,14 @@ class TrajectoryPredictor(object):
         t = max(t_roots)
         return np.polyval([0.5*self.a, v_0, p_0], t)
 
+    def find_interception_point(self, p_0, v_0):
+        '''Finds the point where the ball intersects the y plane of the drone's current position
+        '''
+        t_roots = np.roots([0.5*self.a, v_0, p_0 - self.position])
+        t = max(t_roots)
+        intercept = np.polyval([0.5*self.a, v_0, p_0], t)
+        return intercept
+
     def main(self):
         while True:
             ret, frame = self.vs.read()
@@ -187,6 +199,7 @@ class TrajectoryPredictor(object):
                 if len(self.pos_history) > 1:
                     p_0, v_0 = self.find_initial_conditions(self.pos_history, self.timestamps)
                     interception = self.find_interception_point(p_0, v_0)
+                    initials = self.find_initial_conditions(self.pos_history, self.timestamps)
                 
                 # ax.scatter3D(xs = self.pos_history[-1][0], ys = self.pos_history[-1][1], zs = self.pos_history[-1][2])
                 # fig.canvas.draw()
