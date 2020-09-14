@@ -1,6 +1,6 @@
 # neurotech-objclassifier
 
-To build a mind-controlled quidditch-playing drone, we must first understand that it's _a little_ (think difficult difficult lemon difficult) hard for our machines to accurately determine exactly where we want to throw balls from an EEG. That's why this repo exists: We help our drone catch and launch balls using computer vision.
+To build a mind-controlled quidditch-playing drone, we must first realize that it's _very_ (difficult difficult lemon difficult) hard for our machines to accurately determine exactly where we want to throw balls from an EEG. That's why this repo exists: We help our drone catch and launch balls using computer vision.
 
 Classification and tracking has ~95% accuracy. The video below may or may not be a testament to that, but I'm mainly posting it so that you can see what it looks like.
 
