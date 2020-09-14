@@ -11,7 +11,7 @@ Prediction is done with quadratic regression. I'm currently working on making an
 ### What's next for the drone:
 
 - [ ] Build a simulation framework in which I can test the entire drone's system OR find an online drone simulator I can use
-- [ ] Implement the Kalman Filter to predict where the ball's position (and velocity)
+- [ ] Implement the Kalman Filter to predict the ball's position (and velocity)
 - [ ] Either build a separate repo or organization? that handles telling where the drone to go from a BCI (Brain Computer Interface)
 
 An First-Person view stream from the drone would be very useful for controlling the drone, and I built the streaming service in Unity [here](http://www.github.com/dhrumilp15/UnityVRStreaming).
