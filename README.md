@@ -1,8 +1,10 @@
 # neurotech-objclassifier
 
-To build a mind-controlled quidditch-playing drone, we must first realize that it's _very_ (difficult difficult lemon difficult) hard for our machines to accurately determine exactly where we want to throw balls from an EEG. That's why this repo exists: We help our drone catch and launch balls using computer vision.
+To build a mind-controlled quidditch-playing drone, we must first realize that it's _very_ (difficult difficult lemon difficult) hard for machines to accurately determine exactly where we want to throw balls from an EEG. That's why this repo exists: We help our drone catch and launch balls using computer vision.
 
 Classification and tracking has ~95% accuracy. The video below may or may not be a testament to that, but I'm mainly posting it so that you can see what it looks like.
+
+![An awesome gif of the machine classifying a ping pong ball](/drone.gif)
 
 Prediction is done with quadratic regression. I'm currently working on making an EKF (extended kalman filter) to track the ball, using the quadratic regression as the predicting function. I could quickly implement a g-h filter, but I think I might just go for all the marbles with the kalman filter.
 
