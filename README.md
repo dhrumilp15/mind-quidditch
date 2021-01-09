@@ -1,17 +1,16 @@
 # neurotech-objclassifier
 
-To build a mind-controlled quidditch-playing drone, we must first realize that it's _very_ (difficult difficult lemon difficult) hard for machines to accurately determine exactly where we want to throw balls from an EEG. That's why this repo exists: We help our drone catch and launch balls using computer vision.
+To build a mind-controlled quidditch-playing drone, we must first realize that it's _very_ (difficult-difficult-lemon-difficult) hard to determine exactly where a player might want to throw a ball. We can assume that players want to pass balls between drones and that first requires us to track and predict balls
 
-Classification and tracking has ~95% accuracy. The video below may or may not be a testament to that, but I'm mainly posting it so that you can see what it looks like.
+Classification and tracking has ~95% accuracy. The video below is a nice demo of the real-time classification of the ball.
 
 ![An awesome gif of the machine classifying a ping pong ball](/drone.gif)
 
-Prediction is done with quadratic regression. I'm currently working on making an EKF (extended kalman filter) to track the ball, using the quadratic regression as the predicting function. I could quickly implement a g-h filter, but I think I might just go for all the marbles with the kalman filter.
+Prediction is done with quadratic regression. I'm currently making an EKF (extended kalman filter) to track the ball. I could just implement a g-h filter, but I think I might just go for all the marbles with the kalman filter. (I also want to get some practice building filters after reading @rlabbe's filters book) :)
 
 ### What's next for the drone:
 
-- [ ] Build a simulation framework in which I can test the entire drone's system OR find an online drone simulator I can use
+- [ ] Build a simulation framework to test the entire system OR find an online drone simulator I can use
 - [ ] Implement the Kalman Filter to predict the ball's position (and velocity)
-- [ ] Either build a separate repo or organization? that handles telling where the drone to go from a BCI (Brain Computer Interface)
 
 An First-Person view stream from the drone would be very useful for controlling the drone, and I built the streaming service in Unity [here](http://www.github.com/dhrumilp15/UnityVRStreaming).
