@@ -26,32 +26,36 @@ class TrajectoryPredictor(object):
     '''Predicts the trajectory of a ball identified by the BallClassifier
 
     Predicts the trajectory ball by predicting its intial position and velocity.
-    Note that the trajectory predictor uses x as left-right, y as up-down, and z as depth. This is why the y-value is -9.8
+    All attributes are ndarrays unless otherwise noted.
 
     Attributes:
-        self.pos_history: An ndarry of the record of position measurements.
-        self.timestamps: An ndarray of the record of time measurements.
-        self.position: An ndarray of the current position of the drone.
-        self.rvec: An ndarray of the current rotation vector of the drone.
+        self.pos_history: The record of position measurements.
+        self.timestamps: The record of time measurements.
+        self.position: The current position of the drone.
+        self.position: The current rotation vector of the drone.
 
-        self.a: The world acceleration.
+        self.a: The world acceleration. Note that the trajectory predictor uses
+                x as left-right, y as up-down, and z as depth. This is why the y-value is -9.8
         self.camera_matrix: The camera matrix acquired from calibration images.
-        self.dist: An ndarray of the distortion coeffs
-        self.BC: A BallClassifier object to identify the ball's camera coords.
-        self.vs: A VideoCapture object from which to pull frames.
+        self.dist: The matrix of distortion coefficients from calibration images.
+        self.BC: The BallClassifier object used to identify where the ball is in the image.
+        self.vs: The VideoCapture object to be analyzed
     '''
 
     def __init__(self, args):
-        '''Inits TrajectoryPredictor with important information'''
         self.pos_history = np.array([], dtype=np.float32)
         self.timestamps = []
         self.position = np.array([0, 0, 0], dtype=np.float32)
         self.rvec = np.array([0, 0, 0], dtype=np.float32)
 
-        # Assume acceleration is uniform and is Earth's gravitational constant
-        # (We're on Earth friends... or are we?)
+        # Assume acceleration is uniform and is Earth's gravitational constant (We're on Earth friends... or are we?)
         self.a = np.array([0, -9.8, 0], dtype=np.float32)
         self.camera_matrix, self.dist = calibrate_camera()
+
+        # Assume acceleration is uniform and is Earth's gravitational constant (We're on Earth friends... or are we?)
+        self.a = np.array([0, -9.8, 0], dtype=np.float32)
+        self.camera_matrix, self.dist = calibrate_camera()
+        # fovx, fovy, self.fL, self.pP, aR = cv2.calibrationMatrixValues(self.camera_matrix, (640, 360), 1, 1)
         self.BC = BallClassifier(args)
         if args.get("video", False):
             self.vs = cv2.VideoCapture(args["video"])
@@ -155,6 +159,14 @@ class TrajectoryPredictor(object):
         t = max(t_roots)
         return np.polyval([0.5*self.a, v_0, p_0], t)
 
+    def find_interception_point(self, p_0, v_0):
+        '''Finds the point where the ball intersects the y plane of the drone's current position
+        '''
+        t_roots = np.roots([0.5*self.a, v_0, p_0 - self.position])
+        t = max(t_roots)
+        intercept = np.polyval([0.5*self.a, v_0, p_0], t)
+        return intercept
+
     def main(self):
         while True:
             ret, frame = self.vs.read()
@@ -198,6 +210,8 @@ class TrajectoryPredictor(object):
                     p_0, v_0 = self.find_initial_conditions(
                         self.pos_history, self.timestamps)
                     interception = self.find_interception_point(p_0, v_0)
+                    initials = self.find_initial_conditions(
+                        self.pos_history, self.timestamps)
 
                 # ax.scatter3D(xs = self.pos_history[-1][0], ys = self.pos_history[-1][1], zs = self.pos_history[-1][2])
                 # fig.canvas.draw()
