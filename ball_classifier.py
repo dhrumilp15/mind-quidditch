@@ -4,7 +4,6 @@ from collections import deque
 import argparse
 import time
 import os
-import imutils
 import json
 import logging
 from utils import screenDebug
