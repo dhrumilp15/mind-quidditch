@@ -20,3 +20,9 @@ __pycache__/
 
 # Helper files I created that don't need to be in the main repo
 rename.py
+
+# The range-finder to grab colour ranges
+range-detector.py
+
+# Calibration pictures
+calibrate_images/
