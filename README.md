@@ -1,6 +1,8 @@
 # neurotech-objclassifier
 
-To build a mind-controlled quidditch-playing drone, we must first realize that it's _very_ (difficult-difficult-lemon-difficult) hard to determine exactly where a player might want to throw a ball. We can assume that players want to pass balls between drones and that first requires us to track and predict balls
+To build a mind-controlled quidditch-playing drone, we must first realize that it's _very_ (difficult-difficult-lemon-difficult) hard to determine exactly where a player might want to throw a ball. We can assume that players want to pass balls between drones and that first requires us to track and predict balls.
+
+Heads up! I stream developing my projects on [Twitch/dhrumilp15](https://twitch.tv/dhrumilp15)! Come visit sometime!
 
 Classification and tracking has ~95% accuracy. The video below is a nice demo of the real-time classification of the ball.
 
