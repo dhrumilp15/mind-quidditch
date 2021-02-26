@@ -12,11 +12,7 @@ Classification and tracking has ~95% accuracy. The video below is a nice demo of
 
 Prediction is done with quadratic regression. I'm currently making an EKF (extended kalman filter) to track the ball. I could just implement a g-h filter, but I think I might just go for all the marbles with the kalman filter. (I also want to get some practice building filters after reading @rlabbe's filters book) :)
 
-We calculate the 3D position of the projectile with camera projection:
-
-![An epic graph of the machine plotting the world coordinates of a ping pong ball](/first_correct_coordinate_graph.png)
-
-We calculate the predicted 3D path of the projectile currently using RANSAC and a quadratic regression model:
+We calculate the 3D position of the projectile with camera projection and predict its path using RANSAC and a quadratic regression model:
 
 ![An epic plot of the world coordinates and predicted path of a ping pong ball](/predicted_ball_path.png)
 
