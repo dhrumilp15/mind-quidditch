@@ -1,5 +1,4 @@
-<<<<<<< HEAD
-<<<<<<< HEAD
+
 # IDE Files
 **/.vscode/
 **/.ionide/
@@ -30,53 +29,3 @@ calibrate_images/
 
 # mp4 videos
 test_videos/
-=======
-=======
->>>>>>> 1a166fe6c3655ce6abbbd3f8ba8e2993014d61fd
-# IDE Files
-**/.vscode/
-**/.ionide/
-**/.ipynb_checkpoints/
-
-# IDE Specific
-*.db
-tempCodeRunnerFile.py
-
-# Standard python
-__pycache__/
-*.pyc
-
-<<<<<<< HEAD
-# Camera intrinsics (this varies between cameras - find yours!)
-*.npy
-
-# Debug Images and Files
-=======
-# Camera intrinsics that's different for each camera
-*.npy
-
-# Debug Images and Files
-*.png
->>>>>>> 1a166fe6c3655ce6abbbd3f8ba8e2993014d61fd
-*.txt
-
-# Helper files I created that don't need to be in the main repo
-rename.py
-
-# The range-finder to grab colour ranges
-range-detector.py
-
-# Calibration pictures
-calibrate_images/
-
-# mp4 videos
-test_throw.mp4
-test_throw2.mp4
-<<<<<<< HEAD
-test_throw3.mp4
-test_throw4.mp4
-*.avi
->>>>>>> 51cdc54ddc6726a9eb004e70476e732feebdbe2e
-=======
-output.avi
->>>>>>> 1a166fe6c3655ce6abbbd3f8ba8e2993014d61fd
