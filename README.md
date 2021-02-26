@@ -14,6 +14,10 @@ We calculate the 3D position of the projectile with camera projection:
 
 ![An epic graph of the machine plotting the world coordinates of a ping pong ball](/first_correct_coordinate_graph.png)
 
+We calculate the predicted 3D path of the projectile currently using RANSAC and a quadratic regression model:
+
+![An epic plot of the world coordinates and predicted path of a ping pong ball](/predicted_ball_path.png)
+
 ### What's next for the drone:
 
 - [ ] Build a simulation framework to test the entire system OR find an online drone simulator I can use
