@@ -46,7 +46,7 @@ class BallClassifier:
 
     '''
 
-    def __init__(self, args, imgiter=None):
+    def __init__(self, args={}, imgiter=None):
         self.vs = None
         self.record = []
         self.imgiter = None
@@ -112,8 +112,8 @@ class BallClassifier:
         cnts, hier = cv2.findContours(
             mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         radius = None
-        if self.debug:
-            cv2.imshow('mask', mask)
+        # if self.debug:
+        #     cv2.imshow('mask', mask)
         y, x = None, None
         if len(cnts) > 0:
             c = max(cnts, key=cv2.contourArea)
@@ -136,12 +136,12 @@ class BallClassifier:
         if cres is not None:
             center, radius = cres
             # Updating Center and Radius
-            res = self.hough(frame, center, radius)
-            if res is not None:
-                center, radius = res
-                # dres = self.hough(frame, res[0], res[1])
-                # if dres is not None:
-                #     center, radius = dres
+            # res = self.hough(frame, center, radius)
+            # if res is not None:
+            #     center, radius = res
+            # dres = self.hough(frame, res[0], res[1])
+            # if dres is not None:
+            #     center, radius = dres
         return center, radius
 
     def main(self):
