@@ -11,16 +11,18 @@ from utils import screenDebug
 from calibrate import calibrate_camera
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.linear_model import RANSACRegressor
+import seaborn as sns
 
 from WebcamStream import WebcamStream
 from BallClassifier import BallClassifier
 from VideoFileStream import VideoFileStream
 
+sns.set_style("whitegrid", {'axes.grid': False})
 fig = plt.figure()
 ax = fig.add_subplot(111, projection='3d')
 fig2, (ax1, ax2, ax3) = plt.subplots(1, 3)
 ax.elev = -69
-ax.azim = 87
+ax.azim = 90
 
 
 class TrajectoryPredictor(object):
@@ -43,6 +45,11 @@ class TrajectoryPredictor(object):
     '''
 
     def __init__(self, args):
+        '''Creates a TrajectoryPredictor Object
+
+        Args:
+            args: A dict of config information
+        '''
         self.position = np.array([0, 0, 0], dtype=np.float32)
         self.pos_history = np.array([])
         # Assume acceleration is uniform and is Earth's gravitational constant (We're on Earth friends... or are we?)
@@ -65,8 +72,10 @@ class TrajectoryPredictor(object):
             self.vs.open_video_stream()
         self.camera_matrix, roi = cv2.getOptimalNewCameraMatrix(
             self.camera_matrix, self.dist, (640, 360), 1, (640, 360))
+        self.out = cv2.VideoWriter('predicted_path.avi', cv2.VideoWriter_fourcc(
+            'M', 'J', 'P', 'G'), 10, (640, 480))
 
-    def get_dist(self, radius) -> float:
+    def find_dist(self, radius) -> float:
         '''Gets the distance (in mm) from the object to the camera
 
         Calculates the distance in mm from the object to the camera using a reference diameter
@@ -86,11 +95,11 @@ class TrajectoryPredictor(object):
         return dist
 
     def find_ball_global_position(self, point: np.array, dist: np.array) -> np.array:
-        '''Calculates the global position of given point knowing its depth.
+        '''Calculates the global position of points knowing each point's depth.
 
         Args:
             points: An Nx2 ndarray of point as they appear in the camera screen
-            dist: A Nxk ndarray of the depth of points from the camera
+            dist: A Nx1 ndarray of the depth of points from the camera
 
         Returns:
             A Nx3 ndarray of global positions
@@ -114,14 +123,15 @@ class TrajectoryPredictor(object):
         final = np.hstack((final, Z))
         return final  # world position
 
-    def predict_path(self, path):
-        '''Calculates the initial position and velocity of the ball from the path.
+    def predict_path(self, path: np.array, next_points: int = 2) -> np.array:
+        '''Predicts the next next_points points of the ball's path
 
         Args:
             path: An Nx3 ndarray of positions of the ball
+            next_points: An integer of the number of next points to predict
 
         Returns:
-            A tuple containing the initial position and initial velocity in that order.
+            A ndarray of the path of the ball
         '''
         ts = np.arange(path.shape[0])[:, np.newaxis]
         xr = self.Xr.fit(ts, path[:, 0])
@@ -130,7 +140,7 @@ class TrajectoryPredictor(object):
         yr = self.YrR.fit(ts_transformed, path[:, 1])
         zr = self.Zr.fit(ts, path[:, 2])
 
-        ts = np.arange(path.shape[0] + 2)[:, np.newaxis]
+        ts = np.arange(path.shape[0] + next_points)[:, np.newaxis]
         Y_transformed = self.Yr.fit_transform(
             np.arange(ts.shape[0])[:, np.newaxis])
 
@@ -144,7 +154,7 @@ class TrajectoryPredictor(object):
             np.arange(ts.shape[0])[:, np.newaxis])
         return pred_path
 
-    def find_interception_point(self, p_0, v_0):
+    def find_interception_point(self, p_0: np.array, v_0: np.array) -> np.array:
         '''Finds the point where the ball will be closest to the drone's current position.
 
         Finds the point that will take the longest to achieve to give
@@ -161,17 +171,31 @@ class TrajectoryPredictor(object):
         t = max(t_roots)
         return np.polyval([0.5*self.a, v_0, p_0], t)
 
-    def draw_points_to_screen(self, points, frame):
+    def draw_points_to_frame(self, points: np.array, frame: np.array,
+                             rvec: np.array = np.identity(3),
+                             tvec: np.array = np.zeros(3)) -> None:
+        '''Draws points to the frame
+
+        Blue Circles represent the ball's position when sampled.
+        Green lines represent the ball's path between points.
+
+        Args:
+            points: An ndarray of 3D points to draw to the frame
+            frame: An ndarray of the image frame
+        '''
+        # Our calculations must be done with unflipped x and y axes
         points[:, 0] *= -1.0
         points[:, 1] *= -1.0
         pts, jac = cv2.projectPoints(
-            points, np.identity(3), np.array([0.0, 0.0, 0.0], dtype=np.float32), self.camera_matrix, self.dist)
+            points, rvec, tvec, self.camera_matrix, self.dist)
         cv2.polylines(frame, np.int32([pts]), 0, (0, 255, 0))
+        # Draw each point
         for pt in pts:
             x, y = pt[0]
             cv2.circle(frame, (int(x), int(y)), 2, (255, 0, 0), 2)
 
     def main(self):
+        '''Main loop for running the system'''
         while True:
             try:
                 frame = self.vs.read(shape=(640, 480))
@@ -179,11 +203,12 @@ class TrajectoryPredictor(object):
                 break
 
             # Undistort the frame before computing any measurements
-            frame = cv2.GaussianBlur(frame, (3, 3), 0)
+            # frame = cv2.GaussianBlur(frame, (3, 3), 0)
+            frame = cv2.medianBlur(frame, 5)
             center, radius = self.BC.find_center_and_radius(frame)
 
             if center is not None and radius is not None:
-                dist_hat = self.get_dist(radius)  # Predicted distance
+                dist_hat = self.find_dist(radius)  # Predicted distance
                 p_t = self.find_ball_global_position(
                     np.array([center]), dist_hat)
                 # OpenCV flips x and y axes
@@ -206,18 +231,21 @@ class TrajectoryPredictor(object):
                 if self.debug:
                     if len(self.pos_history) > self.min_samples:
                         points = self.predict_path(self.pos_history)
-
-                        self.draw_points_to_screen(points, frame)
+                        self.draw_points_to_frame(
+                            points, frame)
                     cv2.circle(img=frame, center=center, radius=int(
                         radius), color=(0, 255, 0), thickness=2)
                     cv2.circle(img=frame, center=center, radius=2,
                                color=(255, 0, 0), thickness=2)
                     screenDebug(
-                        frame, f"radius: {radius:.4f} px", f"Distance:{self.get_dist(radius):.4f} mm")
+                        frame, f"radius: {radius:.4f} px", f"Distance:{self.find_dist(radius):.4f} mm")
+                    self.out.write(frame)
             if self.debug:
                 cv2.imshow('frame', frame)
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     break
+        self.out.release()
+        self.vs.release()
         cv2.destroyAllWindows()
         ax.scatter(
             self.pos_history[:, 0], self.pos_history[:, 1], self.pos_history[:, 2], c=np.arange(self.pos_history.shape[0]))

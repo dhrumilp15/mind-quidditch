@@ -27,8 +27,4 @@ range-detector.py
 calibrate_images/
 
 # mp4 videos
-test_throw.mp4
-test_throw2.mp4
-test_throw3.mp4
-test_throw4.mp4
-*.avi
+test_videos/
