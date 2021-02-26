@@ -24,7 +24,7 @@ class VideoFileStream(VideoInterface):
 
         self.vs = skvideo.io.FFmpegReader(video_file)
         self.undistorted_frame = None
-        self.camera_matrix, self.dist = calibrate_camera()
+        self.camera_matrix, self.dist = calibrate_camera()[:2]
 
     def open_video_stream(self):
         '''Grabs a camera stream'''
