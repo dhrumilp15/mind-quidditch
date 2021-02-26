@@ -49,7 +49,7 @@ class TrajectoryMetrics(object):
         path = np.array([p_0 + v_0 * t + 0.5 * a * t **
                          2 for t in timestamps], dtype=np.float32)
 
-        p_0hat, v_0hat = self.TP.find_initial_conditions(path, timestamps)
+        p_0hat, v_0hat = self.TP.find_initial_conditions(path, timestamps)[:2]
 
         p_error = np.linalg.norm(p_0 - p_0hat)
         v_error = np.linalg.norm(v_0 - v_0hat)

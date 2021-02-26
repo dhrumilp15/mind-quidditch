@@ -22,7 +22,7 @@ class WebcamStream(VideoInterface):
         #     "ball_images/test_throw.mp4", cv2.CAP_DSHOW)
         self.vs.set(cv2.CAP_PROP_FPS, 30)
         self.undistorted_frame = None
-        self.camera_matrix, self.dist = calibrate_camera()
+        self.camera_matrix, self.dist = calibrate_camera()[:2]
 
     def open_video_stream(self):
         '''Grabs a camera stream'''
