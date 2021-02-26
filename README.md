@@ -1,6 +1,10 @@
 # neurotech-objclassifier
 
-To build a mind-controlled quidditch-playing drone, we must first realize that it's _very_ (difficult-difficult-lemon-difficult) hard to determine exactly where a player might want to throw a ball. We can assume that players want to pass balls between drones and that first requires us to track and predict balls
+To build a mind-controlled quidditch-playing drone, we must first realize that it's _very_ (difficult-difficult-lemon-difficult) hard to determine exactly where a player might want to throw a ball. We can assume that players want to pass balls between drones and that first requires us to track and predict balls.
+
+I stream developing my projects on [Twitch/dhrumilp15](https://twitch.tv/dhrumilp15)! Come visit sometime!
+
+![An awesome gif of the machine classifying and predicting the path of a ping pong ball](/predicted_path.gif)
 
 Classification and tracking has ~95% accuracy. The video below is a nice demo of the real-time classification of the ball.
 
@@ -11,6 +15,10 @@ Prediction is done with quadratic regression. I'm currently making an EKF (exten
 We calculate the 3D position of the projectile with camera projection:
 
 ![An epic graph of the machine plotting the world coordinates of a ping pong ball](/first_correct_coordinate_graph.png)
+
+We calculate the predicted 3D path of the projectile currently using RANSAC and a quadratic regression model:
+
+![An epic plot of the world coordinates and predicted path of a ping pong ball](/predicted_ball_path.png)
 
 ### What's next for the drone:
 

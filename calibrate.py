@@ -7,7 +7,11 @@ import os
 def calibrate_camera():
     ''' Calibrates camera from given images
 
+<<<<<<< HEAD
     Tries to first load existing camera matrix, distortion coefficients, rotation vector, translation vector
+=======
+    Tries to first load existing camera matrix
+>>>>>>> 51cdc54ddc6726a9eb004e70476e732feebdbe2e
 
     Returns:
         mtx: Camera matrix

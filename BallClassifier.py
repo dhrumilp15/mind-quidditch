@@ -143,8 +143,8 @@ class BallClassifier:
         cnts, hier = cv2.findContours(
             mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         radius = None
-        if self.debug:
-            cv2.imshow('mask', mask)
+        # if self.debug:
+        #     cv2.imshow('mask', mask)
         y, x = None, None
         if len(cnts) > 0:
             c = max(cnts, key=cv2.contourArea)
