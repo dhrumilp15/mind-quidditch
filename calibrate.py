@@ -5,11 +5,21 @@ import os
 
 
 def calibrate_camera():
+    ''' Calibrates camera from given images
+
+    Tries to first load existing camera matrix
+
+    Returns:
+        mtx: Camera matrix
+        dist: Distortion coefficients
+        rvecs: Rotation vector
+        tvecs: Translation vector
+    '''
     try:
         mtx = np.load('calibrate_images/mtx.npy')
         dist = np.load('calibrate_images/dist.npy')
-        # rvecs = np.load('calibrate_images/rvecs.npy')
-        # tvecs = np.load('calibrate_images/tvecs.npy')
+        rvecs = np.load('calibrate_images/rvecs.npy')
+        tvecs = np.load('calibrate_images/tvecs.npy')
     except (OSError, FileNotFoundError) as error:
         # termination criteria
         criteria = (cv2.TERM_CRITERIA_EPS +
@@ -78,4 +88,4 @@ def calibrate_camera():
             mean_error += error
         mean_error /= len(objpoints)
         print(f'Reprojection Error: {mean_error}')
-    return mtx, dist
+    return mtx, dist, rvecs, tvecs

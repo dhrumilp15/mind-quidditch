@@ -9,6 +9,8 @@ import os
 import time
 from utils import screenDebug
 from calibrate import calibrate_camera
+from sklearn.preprocessing import PolynomialFeatures
+from sklearn.linear_model import RANSACRegressor
 
 from WebcamStream import WebcamStream
 from BallClassifier import BallClassifier
@@ -16,8 +18,9 @@ from VideoFileStream import VideoFileStream
 
 fig = plt.figure()
 ax = fig.add_subplot(111, projection='3d')
-ax.elev = -50
-ax.azim = 90
+fig2, (ax1, ax2, ax3) = plt.subplots(1, 3)
+ax.elev = -69
+ax.azim = 87
 
 
 class TrajectoryPredictor(object):
@@ -28,7 +31,6 @@ class TrajectoryPredictor(object):
 
     Attributes:
         self.pos_history: The record of position measurements.
-        self.timestamps: The record of time measurements.
         self.position: The current position of the drone.
         self.position: The current rotation vector of the drone.
 
@@ -41,17 +43,19 @@ class TrajectoryPredictor(object):
     '''
 
     def __init__(self, args):
-        self.pos_history = np.array([], dtype=np.float32)
-        self.timestamps = []
         self.position = np.array([0, 0, 0], dtype=np.float32)
-        self.rvec = np.array([0, 0, 0], dtype=np.float32)
-
+        self.pos_history = np.array([])
         # Assume acceleration is uniform and is Earth's gravitational constant (We're on Earth friends... or are we?)
         self.a = np.array([0, -9.8, 0], dtype=np.float32)
-        self.camera_matrix, self.dist = calibrate_camera()
+        self.camera_matrix, self.dist, self.rvec, self.tvec = calibrate_camera()
         self.debug = args.get("debug", False)
 
-        # fovx, fovy, self.fL, self.pP, aR = cv2.calibrationMatrixValues(self.camera_matrix, (640, 360), 1, 1)
+        self.min_samples = 2
+        self.Xr = RANSACRegressor(min_samples=self.min_samples)
+        self.Yr = PolynomialFeatures()
+        self.YrR = RANSACRegressor(min_samples=self.min_samples)
+        self.Zr = RANSACRegressor(min_samples=self.min_samples)
+
         self.BC = BallClassifier(args)
         if "video" in args:
             if isinstance(args.get("video"), str) and os.path.exists(args.get("video")):
@@ -110,36 +114,35 @@ class TrajectoryPredictor(object):
         final = np.hstack((final, Z))
         return final  # world position
 
-    def find_initial_conditions(self, path, timestamps):
-        '''Calculates the initial position and velocity of the ball
-
-        Calculates the initial position and velocity of the ball from timestamps and the path.
-        The number of timestamps must be equal to the number of ball position measurements.
+    def predict_path(self, path):
+        '''Calculates the initial position and velocity of the ball from the path.
 
         Args:
             path: An Nx3 ndarray of positions of the ball
-            timestamps: A 1xN ndarray of timestamps
 
         Returns:
             A tuple containing the initial position and initial velocity in that order.
         '''
-        # print("path")
-        # print(path)
+        ts = np.arange(path.shape[0])[:, np.newaxis]
+        xr = self.Xr.fit(ts, path[:, 0])
+        ts_transformed = self.Yr.fit_transform(ts)
 
-        X_coeffs = np.polyfit(timestamps, path[:, 0], 1)
-        Y_coeffs = np.polyfit(timestamps, path[:, 1], 2)
-        Z_coeffs = np.polyfit(timestamps, path[:, 2], 1)
+        yr = self.YrR.fit(ts_transformed, path[:, 1])
+        zr = self.Zr.fit(ts, path[:, 2])
 
-        p_0 = np.array([X_coeffs[-1], Y_coeffs[-1],
-                        Z_coeffs[-1]], dtype=np.float32)
-        p_1 = np.array([
-            np.polyval(X_coeffs, timestamps[1]),
-            np.polyval(Y_coeffs, timestamps[1]),
-            np.polyval(Z_coeffs, timestamps[1]),
-        ])
+        ts = np.arange(path.shape[0] + 2)[:, np.newaxis]
+        Y_transformed = self.Yr.fit_transform(
+            np.arange(ts.shape[0])[:, np.newaxis])
 
-        v_0 = (p_1 - p_0) / timestamps[1] - 0.5*self.a * timestamps[1]
-        return p_0, v_0
+        pred_path = np.zeros(
+            ts.shape[0] * 3).reshape(-1, 3)
+        pred_path[:, 0] = xr.predict(
+            np.arange(ts.shape[0])[:, np.newaxis])
+        pred_path[:, 1] = yr.predict(
+            Y_transformed)
+        pred_path[:, 2] = zr.predict(
+            np.arange(ts.shape[0])[:, np.newaxis])
+        return pred_path
 
     def find_interception_point(self, p_0, v_0):
         '''Finds the point where the ball will be closest to the drone's current position.
@@ -158,12 +161,15 @@ class TrajectoryPredictor(object):
         t = max(t_roots)
         return np.polyval([0.5*self.a, v_0, p_0], t)
 
-    def truncate_colormap(self, cmap, minval=0.0, maxval=1.0, n=100):
-        new_cmap = colors.LinearSegmentedColormap.from_list(
-            'trunc({n},{a:.2f},{b:.2f})'.format(
-                n=cmap.name, a=minval, b=maxval),
-            cmap(np.linspace(minval, maxval, n)))
-        return new_cmap
+    def draw_points_to_screen(self, points, frame):
+        points[:, 0] *= -1.0
+        points[:, 1] *= -1.0
+        pts, jac = cv2.projectPoints(
+            points, np.identity(3), np.array([0.0, 0.0, 0.0], dtype=np.float32), self.camera_matrix, self.dist)
+        cv2.polylines(frame, np.int32([pts]), 0, (0, 255, 0))
+        for pt in pts:
+            x, y = pt[0]
+            cv2.circle(frame, (int(x), int(y)), 2, (255, 0, 0), 2)
 
     def main(self):
         while True:
@@ -177,49 +183,54 @@ class TrajectoryPredictor(object):
             center, radius = self.BC.find_center_and_radius(frame)
 
             if center is not None and radius is not None:
-                self.timestamps.append(time.time())
                 dist_hat = self.get_dist(radius)  # Predicted distance
                 p_t = self.find_ball_global_position(
                     np.array([center]), dist_hat)
+                # OpenCV flips x and y axes
                 p_t[:, 0] *= -1.0
                 p_t[:, 1] *= -1.0
-                # print(p_t)
-                if len(self.pos_history) > 1:
-                    v_t = (p_t - self.pos_history[-1]) / \
-                        (time.time() - self.timestamps[-1])
 
-                if len(self.pos_history) == 0:
+                if len(self.pos_history) > 1:
+                    v_t = (p_t - self.pos_history[-1])
+
+                if self.pos_history.shape[0] == 0:
                     self.pos_history = p_t
                 else:
                     self.pos_history = np.vstack((self.pos_history, p_t))
 
                 logging.info(self.pos_history)
 
-                if len(self.pos_history) > 1:
-                    p_0, v_0 = self.find_initial_conditions(
-                        self.pos_history, self.timestamps)
+                if self.pos_history.shape[0] > self.min_samples:
+                    self.predicted_path = self.predict_path(self.pos_history)
                 # interception = self.find_interception_point(p_0, v_0)
                 if self.debug:
+                    if len(self.pos_history) > self.min_samples:
+                        points = self.predict_path(self.pos_history)
+
+                        self.draw_points_to_screen(points, frame)
                     cv2.circle(img=frame, center=center, radius=int(
                         radius), color=(0, 255, 0), thickness=2)
                     cv2.circle(img=frame, center=center, radius=2,
                                color=(255, 0, 0), thickness=2)
                     screenDebug(
                         frame, f"radius: {radius:.4f} px", f"Distance:{self.get_dist(radius):.4f} mm")
-                    print(p_t)
             if self.debug:
                 cv2.imshow('frame', frame)
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     break
         cv2.destroyAllWindows()
-
-        # new_cmap1 = self.truncate_colormap(plt.get_cmap('jet'), 0.45, 1.0)
-        # new_cmap2 = self.truncate_colormap(plt.get_cmap('brg'), 1.0, 0.45)
-
-        # ax[0].imshow(a, aspect='auto', cmap=new_cmap1)
-        # ax[1].imshow(a, aspect='auto', cmap=new_cmap2)
         ax.scatter(
-            xs=self.pos_history[:, 0], ys=self.pos_history[:, 1], zs=self.pos_history[:, 2], c=self.timestamps)
+            self.pos_history[:, 0], self.pos_history[:, 1], self.pos_history[:, 2], c=np.arange(self.pos_history.shape[0]))
+        points = self.predict_path(self.pos_history)
+        ax.plot(points[:, 0], points[:, 1], points[:, 2])
+        if self.debug:
+            ax1.plot(self.pos_history[:, 0])
+            ax1.plot(points[:, 0])
+            ax2.plot(self.pos_history[:, 1])
+            ax2.plot(points[:, 1])
+            ax3.plot(self.pos_history[:, 2])
+            ax3.plot(points[:, 2])
+
         ax.set_xlabel('x')
         ax.set_ylabel('y')
         ax.set_zlabel('z')

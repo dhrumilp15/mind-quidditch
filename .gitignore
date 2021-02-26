@@ -11,11 +11,10 @@ tempCodeRunnerFile.py
 __pycache__/
 *.pyc
 
-# Camera intrinsics that's different for each camera
+# Camera intrinsics (this varies between cameras - find yours!)
 *.npy
 
 # Debug Images and Files
-*.png
 *.txt
 
 # Helper files I created that don't need to be in the main repo
@@ -30,4 +29,6 @@ calibrate_images/
 # mp4 videos
 test_throw.mp4
 test_throw2.mp4
-output.avi
+test_throw3.mp4
+test_throw4.mp4
+*.avi
