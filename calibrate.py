@@ -2,16 +2,14 @@ import numpy as np
 import cv2
 import logging
 import os
+from typing import Tuple
 
 
-def calibrate_camera():
+def calibrate_camera() -> Tuple[np.array, np.array, np.array, np.array]:
     ''' Calibrates camera from given images
 
-<<<<<<< HEAD
-    Tries to first load existing camera matrix, distortion coefficients, rotation vector, translation vector
-=======
-    Tries to first load existing camera matrix
->>>>>>> 51cdc54ddc6726a9eb004e70476e732feebdbe2e
+    Tries to load an existing camera matrix, distortion coefficients, 
+    rotation vectors and translation vectors from disk.
 
     Returns:
         mtx: Camera matrix

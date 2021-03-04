@@ -26,5 +26,9 @@ range-detector.py
 # Calibration pictures
 calibrate_images/
 
-# mp4 videos
+# testing videos
 test_videos/
+
+# Github readme doesn't display these, so why bother uploading them?
+*.mp4
+*.avi
