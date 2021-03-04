@@ -39,7 +39,7 @@ ballhigh = np.array([30, 255, 255])
 class BallClassifier:
     '''Classifies balls from a video stream
 
-    Classifies the ball using a colour mask and hough transform if indicated
+    Classifies the ball using a colour mask and hough transform
 
     Attributes:
         self.vs: The video stream
@@ -191,7 +191,6 @@ class BallClassifier:
                     break
             else:
                 frame = self.vs.read()
-            # frame = cv2.GaussianBlur(frame, (3, 3), 0)
             frame = cv2.medianBlur(frame, 5)
             center, radius = self.find_center_and_radius(frame)
 
@@ -227,13 +226,10 @@ class BallClassifier:
 def configure_args() -> dict:
     ap = argparse.ArgumentParser()
     ap.add_argument("-d", "--debug", action="store_true",
-                    help="Show debug information")
+                    help="Show debug information", default=True)
     ap.add_argument("-v", "--video",
                     help="path to the (optional) video file", default=0)
-    ap.add_argument("-b", "--buffer", type=int,
-                    default=64, help="max buffer size")
-    print(vars(ap.parse_args()))
-    return vars(ap.parse_args())
+    return vars(ap.parse_tags())
 
 
 if __name__ == "__main__":

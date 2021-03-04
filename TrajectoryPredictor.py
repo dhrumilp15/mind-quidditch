@@ -1,18 +1,19 @@
-import cv2
-import numpy as np
 import argparse
-import matplotlib.pyplot as plt
-import matplotlib.colors as colors
 import json
 import logging
 import os
 import time
-from utils import screenDebug
-from calibrate import calibrate_camera
+
+import cv2
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.colors as colors
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.linear_model import RANSACRegressor
 import seaborn as sns
 
+from utils import screenDebug
+from calibrate import calibrate_camera
 from WebcamStream import WebcamStream
 from BallClassifier import BallClassifier
 from VideoFileStream import VideoFileStream
@@ -25,10 +26,13 @@ ax.elev = -69
 ax.azim = 90
 
 
-class TrajectoryPredictor(object):
+class TrajectoryPredictor:
     '''Predicts the trajectory of a ball identified by the BallClassifier
 
-    Predicts the trajectory ball by predicting its intial position and velocity.
+    Predicts the trajectory ball using RANSAC and Polynomial Regression.
+    Uses Linear Regression for the x and z components and Quadratic Regression
+    for the y component.
+
     All attributes are ndarrays unless otherwise noted.
 
     Attributes:
@@ -72,8 +76,8 @@ class TrajectoryPredictor(object):
             self.vs.open_video_stream()
         self.camera_matrix, roi = cv2.getOptimalNewCameraMatrix(
             self.camera_matrix, self.dist, (640, 360), 1, (640, 360))
-        self.out = cv2.VideoWriter('predicted_path.avi', cv2.VideoWriter_fourcc(
-            'M', 'J', 'P', 'G'), 10, (640, 480))
+        self.out = cv2.VideoWriter(
+            'predicted_path.avi', cv2.VideoWriter_fourcc(*'MJPG'), 10, (640, 480))
 
     def find_dist(self, radius) -> float:
         '''Gets the distance (in mm) from the object to the camera
@@ -176,15 +180,14 @@ class TrajectoryPredictor(object):
                              tvec: np.array = np.zeros(3)) -> None:
         '''Draws points to the frame
 
-        Blue Circles represent the ball's position when sampled.
-        Green lines represent the ball's path between points.
+        Draws blue circles for the ball's position and green lines for the
+        ball's path between points.
 
         Args:
             points: An ndarray of 3D points to draw to the frame
             frame: An ndarray of the image frame
         '''
-        # Our calculations must be done with unflipped x and y axes
-        points[:, 0] *= -1.0
+        # Our calculations must be done with unflipped y axes
         points[:, 1] *= -1.0
         pts, jac = cv2.projectPoints(
             points, rvec, tvec, self.camera_matrix, self.dist)
@@ -203,7 +206,6 @@ class TrajectoryPredictor(object):
                 break
 
             # Undistort the frame before computing any measurements
-            # frame = cv2.GaussianBlur(frame, (3, 3), 0)
             frame = cv2.medianBlur(frame, 5)
             center, radius = self.BC.find_center_and_radius(frame)
 
@@ -212,7 +214,6 @@ class TrajectoryPredictor(object):
                 p_t = self.find_ball_global_position(
                     np.array([center]), dist_hat)
                 # OpenCV flips x and y axes
-                p_t[:, 0] *= -1.0
                 p_t[:, 1] *= -1.0
 
                 if len(self.pos_history) > 1:
