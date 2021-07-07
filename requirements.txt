@@ -1,0 +1,4 @@
+scikit-learn
+numpy
+seaborn
+opencv-python
