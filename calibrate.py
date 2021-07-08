@@ -8,7 +8,7 @@ from typing import Tuple
 def calibrate_camera() -> Tuple[np.array, np.array, np.array, np.array]:
     ''' Calibrates camera from given images
 
-    Tries to load an existing camera matrix, distortion coefficients, 
+    Tries to load an existing camera matrix, distortion coefficients,
     rotation vectors and translation vectors from disk.
 
     Returns:
@@ -38,8 +38,9 @@ def calibrate_camera() -> Tuple[np.array, np.array, np.array, np.array]:
         objpoints = []  # 3d point in real world space
         imgpoints = []  # 2d points in image plane.
         count = 0
-        images = ["calibrate_images/" +
-                  name for name in os.listdir("./calibrate_images/") if name.endswith(".jpg")]
+        images = [
+            "calibrate_images/" +
+            name for name in os.listdir("./calibrate_images/") if name.endswith(".jpg")]
         # logging.info(images)
 
         for fname in images:
@@ -81,13 +82,13 @@ def calibrate_camera() -> Tuple[np.array, np.array, np.array, np.array]:
         np.save('calibrate_images/tvecs.npy', tvecs)
 
         # TODO: ERROR LOGGING in separate class
-        mean_error = 0
-        for i in range(len(objpoints)):
-            imgpoints2, _ = cv2.projectPoints(
-                objpoints[i], rvecs[i], tvecs[i], mtx, dist)
-            error = cv2.norm(imgpoints[i], imgpoints2,
-                             cv2.NORM_L2) / len(imgpoints2)
-            mean_error += error
-        mean_error /= len(objpoints)
-        print(f'Reprojection Error: {mean_error}')
+        # mean_error = 0
+        # for i in range(len(objpoints)):
+        #     imgpoints2, _ = cv2.projectPoints(
+        #         objpoints[i], rvecs[i], tvecs[i], mtx, dist)
+        #     error = cv2.norm(imgpoints[i], imgpoints2,
+        #                      cv2.NORM_L2) / len(imgpoints2)
+        #     mean_error += error
+        # mean_error /= len(objpoints)
+        # print(f'Reprojection Error: {mean_error}')
     return mtx, dist, rvecs, tvecs

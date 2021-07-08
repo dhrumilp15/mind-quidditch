@@ -2,9 +2,7 @@ import numpy as np
 import cv2
 from collections import deque
 import argparse
-import time
 import os
-import json
 import logging
 from typing import Tuple
 from collections.abc import Sequence
@@ -68,13 +66,21 @@ class BallClassifier:
             self.counter = 1
         else:
             if "video" in args:
-                if isinstance(args.get("video"), str) and os.path.exists(args.get("video")):
+                if isinstance(
+                        args.get("video"),
+                        str) and os.path.exists(
+                        args.get("video")):
                     self.vs = VideoFileStream(args)
                 else:
                     self.vs = WebcamStream(args.get("video", 0))
             self.vs.open_video_stream()
 
-    def get_hough_frame(self, frame: np.array, center: tuple, radius: float, multiplier: float = 1.2) -> list:
+    def get_hough_frame(
+            self,
+            frame: np.array,
+            center: tuple,
+            radius: float,
+            multiplier: float = 1.2) -> list:
         '''Gets a smaller window of the frame for the Hough transform
 
         Args:
@@ -95,7 +101,8 @@ class BallClassifier:
             newframe = frame[ymin:ymax, xmax:xmin]
         return newframe
 
-    def hough(self, frame: np.array, center: tuple, radius: float) -> Tuple[Tuple[int, int], float]:
+    def hough(self, frame: np.array, center: tuple,
+              radius: float) -> Tuple[Tuple[int, int], float]:
         '''Refines an estimate of the center and radius of a ball using circle Hough Transform
 
         Args:
@@ -104,7 +111,7 @@ class BallClassifier:
             radius: A float of the estimated ball's radius
 
         Returns:
-            A tuple that contains a refined estimate of the ball's center and radius 
+            A tuple that contains a refined estimate of the ball's center and radius
             If the center is None, this eventually returns None
         '''
         if center is None or radius is None:
@@ -114,8 +121,15 @@ class BallClassifier:
         minDistBetweenCircles = 10
         rad_mult = 1.15
         smallerframe = self.get_hough_frame(graysc, center, radius, rad_mult)
-        circles = cv2.HoughCircles(smallerframe, cv2.HOUGH_GRADIENT, 1,
-                                   minDistBetweenCircles, param1=high, param2=50, minRadius=5, maxRadius=200)
+        circles = cv2.HoughCircles(
+            smallerframe,
+            cv2.HOUGH_GRADIENT,
+            1,
+            minDistBetweenCircles,
+            param1=high,
+            param2=50,
+            minRadius=5,
+            maxRadius=200)
         if circles is not None:
             # logging.info("Hough Circles found circles")
             circles = np.uint16(np.around(circles))
@@ -123,7 +137,8 @@ class BallClassifier:
             cv2.circle(smallerframe, (xadj, yadj),
                        radius, (255, 0, 0), thickness=2)
             cv2.circle(smallerframe, (xadj, yadj), 2, (0, 255, 0), thickness=2)
-            return (center[0] + int(xadj - rad_mult * radius), center[1] + int(yadj - rad_mult * radius)), radius
+            return (center[0] + int(xadj - rad_mult * radius),
+                    center[1] + int(yadj - rad_mult * radius)), radius
 
     def colour_mask(self, frame: np.array) -> Tuple[Tuple[int, int], float]:
         '''Estimates the center and radius of the ball
@@ -153,9 +168,11 @@ class BallClassifier:
             if M["m00"] == 0:
                 return None
             else:
-                return (int(M["m10"] // M["m00"]), int(M["m01"] // M["m00"])), radius
+                return (int(M["m10"] // M["m00"]),
+                        int(M["m01"] // M["m00"])), radius
 
-    def find_center_and_radius(self, frame: np.array) -> Tuple[Tuple[int, int], float]:
+    def find_center_and_radius(
+            self, frame: np.array) -> Tuple[Tuple[int, int], float]:
         '''Finds the center and radius from the frame
 
         First attempts to find the projectile's center and radius using a colour mask
@@ -202,7 +219,9 @@ class BallClassifier:
                 if self.debug:
                     self.record.append((center, radius))
                     screenDebug(
-                        frame, f"radius(px): {radius:.4f}", f"position: {center}")
+                        frame,
+                        f"radius(px): {radius:.4f}",
+                        f"position: {center}")
 
             if self.imgiter is not None:
                 while True:
@@ -229,10 +248,11 @@ def configure_args() -> dict:
                     help="Show debug information", default=True)
     ap.add_argument("-v", "--video",
                     help="path to the (optional) video file", default=0)
-    return vars(ap.parse_tags())
+    return vars(ap.parse_args())
 
 
 if __name__ == "__main__":
     args = configure_args()
+    print(args)
     bc = BallClassifier(args)
     bc.main()
