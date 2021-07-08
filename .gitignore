@@ -14,9 +14,6 @@ __pycache__/
 # Camera intrinsics (this varies between cameras - find yours!)
 *.npy
 
-# Debug Images and Files
-*.txt
-
 # Helper files I created that don't need to be in the main repo
 rename.py
 

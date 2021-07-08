@@ -56,7 +56,8 @@ class TrajectoryPredictor:
         '''
         self.position = np.array([0, 0, 0], dtype=np.float32)
         self.pos_history = np.array([])
-        # Assume acceleration is uniform and is Earth's gravitational constant (We're on Earth friends... or are we?)
+        # Assume acceleration is uniform and is Earth's gravitational constant
+        # (We're on Earth friends... or are we?)
         self.a = np.array([0, -9.8, 0], dtype=np.float32)
         self.camera_matrix, self.dist, self.rvec, self.tvec = calibrate_camera()
         self.debug = args.get("debug", False)
@@ -69,7 +70,10 @@ class TrajectoryPredictor:
 
         self.BC = BallClassifier(args)
         if "video" in args:
-            if isinstance(args.get("video"), str) and os.path.exists(args.get("video")):
+            if isinstance(
+                    args.get("video"),
+                    str) and os.path.exists(
+                    args.get("video")):
                 self.vs = VideoFileStream(args)
             else:
                 self.vs = WebcamStream(args.get("video", 0))
@@ -77,7 +81,8 @@ class TrajectoryPredictor:
         self.camera_matrix, roi = cv2.getOptimalNewCameraMatrix(
             self.camera_matrix, self.dist, (640, 360), 1, (640, 360))
         self.out = cv2.VideoWriter(
-            'predicted_path.avi', cv2.VideoWriter_fourcc(*'MJPG'), 10, (640, 480))
+            'predicted_path.avi', cv2.VideoWriter_fourcc(
+                *'MJPG'), 10, (640, 480))
 
     def find_dist(self, radius) -> float:
         '''Gets the distance (in mm) from the object to the camera
@@ -98,7 +103,10 @@ class TrajectoryPredictor:
         logging.info(f'Estimated Distance: {dist}')
         return dist
 
-    def find_ball_global_position(self, point: np.array, dist: np.array) -> np.array:
+    def find_ball_global_position(
+            self,
+            point: np.array,
+            dist: np.array) -> np.array:
         '''Calculates the global position of points knowing each point's depth.
 
         Args:
@@ -122,8 +130,8 @@ class TrajectoryPredictor:
         # homogeneous coordinate
         Z = np.sqrt(dist**2 / (A**2 + B**2 + 1), dtype=np.float32)
         # Putting each component together
-        final = A*Z
-        final = np.hstack((final, B*Z))
+        final = A * Z
+        final = np.hstack((final, B * Z))
         final = np.hstack((final, Z))
         return final  # world position
 
@@ -171,9 +179,9 @@ class TrajectoryPredictor:
         Returns:
             The interception point as a single 1x3 ndarray
         '''
-        t_roots = np.roots([0.5*self.a, v_0, p_0 - self.position])
+        t_roots = np.roots([0.5 * self.a, v_0, p_0 - self.position])
         t = max(t_roots)
-        return np.polyval([0.5*self.a, v_0, p_0], t)
+        return np.polyval([0.5 * self.a, v_0, p_0], t)
 
     def draw_points_to_frame(self, points: np.array, frame: np.array,
                              rvec: np.array = np.identity(3),
@@ -239,7 +247,9 @@ class TrajectoryPredictor:
                     cv2.circle(img=frame, center=center, radius=2,
                                color=(255, 0, 0), thickness=2)
                     screenDebug(
-                        frame, f"radius: {radius:.4f} px", f"Distance:{self.find_dist(radius):.4f} mm")
+                        frame,
+                        f"radius: {radius:.4f} px",
+                        f"Distance:{self.find_dist(radius):.4f} mm")
                     self.out.write(frame)
             if self.debug:
                 cv2.imshow('frame', frame)
@@ -248,8 +258,13 @@ class TrajectoryPredictor:
         self.out.release()
         self.vs.release()
         cv2.destroyAllWindows()
-        ax.scatter(
-            self.pos_history[:, 0], self.pos_history[:, 1], self.pos_history[:, 2], c=np.arange(self.pos_history.shape[0]))
+        ax.scatter(self.pos_history[:,
+                                    0],
+                   self.pos_history[:,
+                                    1],
+                   self.pos_history[:,
+                                    2],
+                   c=np.arange(self.pos_history.shape[0]))
         points = self.predict_path(self.pos_history)
         ax.plot(points[:, 0], points[:, 1], points[:, 2])
         if self.debug:
@@ -271,7 +286,7 @@ def configure_args():
     ap.add_argument("-v", "--video",
                     help="path to the (optional) video file", default=0)
     ap.add_argument("-d", "--debug", action="store_true",
-                    help="Show video stream + Debug info", default=False)
+                    help="Show video stream + Debug info", default=True)
     return vars(ap.parse_args())
 
 
