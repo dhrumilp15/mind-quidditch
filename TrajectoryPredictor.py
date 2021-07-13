@@ -1,13 +1,10 @@
 import argparse
-import json
 import logging
 import os
-import time
 
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.colors as colors
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.linear_model import RANSACRegressor
 import seaborn as sns
@@ -70,10 +67,7 @@ class TrajectoryPredictor:
 
         self.BC = BallClassifier(args)
         if "video" in args:
-            if isinstance(
-                    args.get("video"),
-                    str) and os.path.exists(
-                    args.get("video")):
+            if isinstance(args["video"], str) and os.path.exists(args["video"]):
                 self.vs = VideoFileStream(args)
             else:
                 self.vs = WebcamStream(args.get("video", 0))
@@ -96,8 +90,9 @@ class TrajectoryPredictor:
         Returns:
             The distance (in mm) from the object to the camera
         '''
+        # focal length in px
         focal_length = np.average(
-            [self.camera_matrix[0, 0], self.camera_matrix[1, 1]])  # focal length in px
+            [self.camera_matrix[0, 0], self.camera_matrix[1, 1]])
         h_world = 19.939  # bad hard coded numbers
         dist = focal_length * h_world / radius
         logging.info(f'Estimated Distance: {dist}')
@@ -156,14 +151,10 @@ class TrajectoryPredictor:
         Y_transformed = self.Yr.fit_transform(
             np.arange(ts.shape[0])[:, np.newaxis])
 
-        pred_path = np.zeros(
-            ts.shape[0] * 3).reshape(-1, 3)
-        pred_path[:, 0] = xr.predict(
-            np.arange(ts.shape[0])[:, np.newaxis])
-        pred_path[:, 1] = yr.predict(
-            Y_transformed)
-        pred_path[:, 2] = zr.predict(
-            np.arange(ts.shape[0])[:, np.newaxis])
+        pred_path = np.zeros(ts.shape[0] * 3).reshape(-1, 3)
+        pred_path[:, 0] = xr.predict(np.arange(ts.shape[0])[:, np.newaxis])
+        pred_path[:, 1] = yr.predict(Y_transformed)
+        pred_path[:, 2] = zr.predict(np.arange(ts.shape[0])[:, np.newaxis])
         return pred_path
 
     def find_interception_point(self, p_0: np.array, v_0: np.array) -> np.array:
@@ -240,8 +231,7 @@ class TrajectoryPredictor:
                 if self.debug:
                     if len(self.pos_history) > self.min_samples:
                         points = self.predict_path(self.pos_history)
-                        self.draw_points_to_frame(
-                            points, frame)
+                        self.draw_points_to_frame(points, frame)
                     cv2.circle(img=frame, center=center, radius=int(
                         radius), color=(0, 255, 0), thickness=2)
                     cv2.circle(img=frame, center=center, radius=2,
@@ -258,13 +248,8 @@ class TrajectoryPredictor:
         self.out.release()
         self.vs.release()
         cv2.destroyAllWindows()
-        ax.scatter(self.pos_history[:,
-                                    0],
-                   self.pos_history[:,
-                                    1],
-                   self.pos_history[:,
-                                    2],
-                   c=np.arange(self.pos_history.shape[0]))
+        ax.scatter(self.pos_history[:, 0], self.pos_history[:, 1],
+                   self.pos_history[:, 2], c=np.arange(self.pos_history.shape[0]))
         points = self.predict_path(self.pos_history)
         ax.plot(points[:, 0], points[:, 1], points[:, 2])
         if self.debug:
@@ -291,6 +276,8 @@ def configure_args():
 
 
 if __name__ == "__main__":
+    print("It's recommended that you pass a video file with -v path/to/video_file. If you'd like to see debug information, pass the -d parameter.")
+    print("Ex. python TrajectoryPredictor.py -v video_of_an_orange_projectile.mp4 -d")
     args = configure_args()
     tp = TrajectoryPredictor(args)
     tp.main()
