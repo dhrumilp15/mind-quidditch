@@ -4,7 +4,6 @@ from VideoInterface import VideoInterface
 import cv2
 
 from calibrate import calibrate_camera
-from os import path
 
 
 class WebcamStream(VideoInterface):
@@ -12,7 +11,7 @@ class WebcamStream(VideoInterface):
     about the stream.
 
     Attributes:
-        capture_id: An integer or string indicating the camera device 
+        capture_id: An integer or string indicating the camera device
     '''
 
     def __init__(self, capture_id=0):
@@ -41,11 +40,10 @@ class WebcamStream(VideoInterface):
             if ret:
                 self.frame = frame
                 # frame = cv2.resize(frame, shape)
-                undistorted = cv2.undistort(
-                    frame, self.camera_matrix, self.dist)
-                self.undistorted_frame = undistorted
+                undist = cv2.undistort(frame, self.camera_matrix, self.dist)
+                self.undistorted_frame = undist
                 if undistort:
-                    return undistorted
+                    return undist
                 else:
                     return frame
             else:

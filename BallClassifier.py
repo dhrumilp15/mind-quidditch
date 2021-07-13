@@ -66,10 +66,8 @@ class BallClassifier:
             self.counter = 1
         else:
             if "video" in args:
-                if isinstance(
-                        args.get("video"),
-                        str) and os.path.exists(
-                        args.get("video")):
+                if isinstance(args["video"], str) and os.path.exists(
+                        args["video"]):
                     self.vs = VideoFileStream(args)
                 else:
                     self.vs = WebcamStream(args.get("video", 0))

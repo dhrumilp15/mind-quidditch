@@ -1,5 +1,7 @@
+scipy
 scikit-learn
 numpy
 seaborn
 opencv-python
 scikit-video
+matplotlib
