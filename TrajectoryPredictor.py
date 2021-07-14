@@ -194,7 +194,8 @@ class TrajectoryPredictor:
         # Draw each point
         for pt in pts:
             x, y = pt[0]
-            cv2.circle(frame, (int(x), int(y)), 2, (255, 0, 0), 2)
+            if isinstance(x, (int)):
+                cv2.circle(frame, (int(x), int(y)), 2, (255, 0, 0), 2)
 
     def main(self):
         '''Main loop for running the system'''
