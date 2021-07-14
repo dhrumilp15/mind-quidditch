@@ -194,7 +194,7 @@ class TrajectoryPredictor:
         # Draw each point
         for pt in pts:
             x, y = pt[0]
-            if x is not None and x >= 0 and y >= 0 and x <= frame.shape[1] and y <= frame.shape[0]:
+            if x >= 0 and y >= 0 and x <= frame.shape[1] and y <= frame.shape[0]:
                 cv2.circle(frame, (int(x), int(y)), 2, (255, 0, 0), 2)
 
     def main(self):
