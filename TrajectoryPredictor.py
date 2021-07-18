@@ -74,9 +74,7 @@ class TrajectoryPredictor:
             self.vs.open_video_stream()
         self.camera_matrix, roi = cv2.getOptimalNewCameraMatrix(
             self.camera_matrix, self.dist, (640, 360), 1, (640, 360))
-        self.out = cv2.VideoWriter(
-            'predicted_path.avi', cv2.VideoWriter_fourcc(
-                *'MJPG'), 10, (640, 480))
+        self.out = cv2.VideoWriter('predicted_path.avi', cv2.VideoWriter_fourcc(*'MJPG'), 10, (640, 480))
 
     def find_dist(self, radius) -> float:
         '''Gets the distance (in mm) from the object to the camera
@@ -91,17 +89,13 @@ class TrajectoryPredictor:
             The distance (in mm) from the object to the camera
         '''
         # focal length in px
-        focal_length = np.average(
-            [self.camera_matrix[0, 0], self.camera_matrix[1, 1]])
+        focal_length = np.average([self.camera_matrix[0, 0], self.camera_matrix[1, 1]])
         h_world = 19.939  # bad hard coded numbers
         dist = focal_length * h_world / radius
         logging.info(f'Estimated Distance: {dist}')
         return dist
 
-    def find_ball_global_position(
-            self,
-            point: np.array,
-            dist: np.array) -> np.array:
+    def find_ball_global_position(self, point: np.array, dist: np.array) -> np.array:
         '''Calculates the global position of points knowing each point's depth.
 
         Args:
@@ -148,8 +142,7 @@ class TrajectoryPredictor:
         zr = self.Zr.fit(ts, path[:, 2])
 
         ts = np.arange(path.shape[0] + next_points)[:, np.newaxis]
-        Y_transformed = self.Yr.fit_transform(
-            np.arange(ts.shape[0])[:, np.newaxis])
+        Y_transformed = self.Yr.fit_transform(np.arange(ts.shape[0])[:, np.newaxis])
 
         pred_path = np.zeros(ts.shape[0] * 3).reshape(-1, 3)
         pred_path[:, 0] = xr.predict(np.arange(ts.shape[0])[:, np.newaxis])
@@ -211,8 +204,7 @@ class TrajectoryPredictor:
 
             if center is not None and radius is not None:
                 dist_hat = self.find_dist(radius)  # Predicted distance
-                p_t = self.find_ball_global_position(
-                    np.array([center]), dist_hat)
+                p_t = self.find_ball_global_position(np.array([center]), dist_hat)
                 # OpenCV flips x and y axes
                 p_t[:, 1] *= -1.0
 
@@ -233,15 +225,15 @@ class TrajectoryPredictor:
                     if len(self.pos_history) > self.min_samples:
                         points = self.predict_path(self.pos_history)
                         self.draw_points_to_frame(points, frame)
-                    cv2.circle(img=frame, center=center, radius=int(
-                        radius), color=(0, 255, 0), thickness=2)
-                    cv2.circle(img=frame, center=center, radius=2,
-                               color=(255, 0, 0), thickness=2)
+                    cv2.circle(img=frame, center=center, radius=int(radius), color=(0, 255, 0), thickness=2)
+                    cv2.circle(img=frame, center=center, radius=2, color=(255, 0, 0), thickness=2)
                     screenDebug(
                         frame,
                         f"radius: {radius:.4f} px",
                         f"Distance:{self.find_dist(radius):.4f} mm")
                     self.out.write(frame)
+            else:
+                self.pos_history = np.array([])
             if self.debug:
                 cv2.imshow('frame', frame)
                 if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -249,11 +241,11 @@ class TrajectoryPredictor:
         self.out.release()
         self.vs.release()
         cv2.destroyAllWindows()
-        ax.scatter(self.pos_history[:, 0], self.pos_history[:, 1],
-                   self.pos_history[:, 2], c=np.arange(self.pos_history.shape[0]))
-        points = self.predict_path(self.pos_history)
-        ax.plot(points[:, 0], points[:, 1], points[:, 2])
-        if self.debug:
+        if self.pos_history.size > 0 and self.debug:
+            ax.scatter(self.pos_history[:, 0], self.pos_history[:, 1],
+                       self.pos_history[:, 2], c=np.arange(self.pos_history.shape[0]))
+            points = self.predict_path(self.pos_history)
+            ax.plot(points[:, 0], points[:, 1], points[:, 2])
             ax1.plot(self.pos_history[:, 0])
             ax1.plot(points[:, 0])
             ax2.plot(self.pos_history[:, 1])
@@ -261,18 +253,16 @@ class TrajectoryPredictor:
             ax3.plot(self.pos_history[:, 2])
             ax3.plot(points[:, 2])
 
-        ax.set_xlabel('x')
-        ax.set_ylabel('y')
-        ax.set_zlabel('z')
-        plt.show()
+            ax.set_xlabel('x')
+            ax.set_ylabel('y')
+            ax.set_zlabel('z')
+            plt.show()
 
 
 def configure_args():
     ap = argparse.ArgumentParser()
-    ap.add_argument("-v", "--video",
-                    help="path to the (optional) video file", default=0)
-    ap.add_argument("-d", "--debug", action="store_true",
-                    help="Show video stream + Debug info", default=True)
+    ap.add_argument("-v", "--video", help="path to the (optional) video file", default=0)
+    ap.add_argument("-d", "--debug", action="store_true", help="Show video stream + Debug info", default=False)
     return vars(ap.parse_args())
 
 

@@ -43,8 +43,7 @@ class VideoFileStream(VideoInterface):
             frame = cv2.resize(frame, kwargs.get('shape'))
         frame = np.flip(frame, axis=2)
         self.frame = frame
-        undistorted = cv2.undistort(
-            frame, self.camera_matrix, self.dist)
+        undistorted = cv2.undistort(frame, self.camera_matrix, self.dist)
         self.undistorted_frame = undistorted
         if undistort:
             return undistorted
@@ -57,10 +56,8 @@ class VideoFileStream(VideoInterface):
 
 def configure_args() -> dict:
     ap = argparse.ArgumentParser()
-    ap.add_argument("-d", "--debug", action="store_true",
-                    help="Show debug information")
-    ap.add_argument("-v", "--video",
-                    help="path to the (optional) video file", default=0)
+    ap.add_argument("-d", "--debug", action="store_true", help="Show debug information")
+    ap.add_argument("-v", "--video", help="path to the (optional) video file", default=0)
     return vars(ap.parse_args())
 
 
