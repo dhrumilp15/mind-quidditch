@@ -99,8 +99,7 @@ class BallClassifier:
             newframe = frame[ymin:ymax, xmax:xmin]
         return newframe
 
-    def hough(self, frame: np.array, center: tuple,
-              radius: float) -> Tuple[Tuple[int, int], float]:
+    def hough(self, frame: np.array, center: tuple, radius: float) -> Tuple[Tuple[int, int], float]:
         '''Refines an estimate of the center and radius of a ball using circle Hough Transform
 
         Args:
@@ -132,11 +131,9 @@ class BallClassifier:
             # logging.info("Hough Circles found circles")
             circles = np.uint16(np.around(circles))
             xadj, yadj, radius = circles[0, :][0]
-            cv2.circle(smallerframe, (xadj, yadj),
-                       radius, (255, 0, 0), thickness=2)
+            cv2.circle(smallerframe, (xadj, yadj), radius, (255, 0, 0), thickness=2)
             cv2.circle(smallerframe, (xadj, yadj), 2, (0, 255, 0), thickness=2)
-            return (center[0] + int(xadj - rad_mult * radius),
-                    center[1] + int(yadj - rad_mult * radius)), radius
+            return (center[0] + int(xadj - rad_mult * radius), center[1] + int(yadj - rad_mult * radius)), radius
 
     def colour_mask(self, frame: np.array) -> Tuple[Tuple[int, int], float]:
         '''Estimates the center and radius of the ball
@@ -153,8 +150,7 @@ class BallClassifier:
         mask = cv2.dilate(mask, None, iterations=2)
         mask = cv2.erode(mask, None, iterations=2)
 
-        cnts, hier = cv2.findContours(
-            mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        cnts, hier = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         radius = None
         # if self.debug:
         #     cv2.imshow('mask', mask)
@@ -166,11 +162,9 @@ class BallClassifier:
             if M["m00"] == 0:
                 return None
             else:
-                return (int(M["m10"] // M["m00"]),
-                        int(M["m01"] // M["m00"])), radius
+                return (int(M["m10"] // M["m00"]), int(M["m01"] // M["m00"])), radius
 
-    def find_center_and_radius(
-            self, frame: np.array) -> Tuple[Tuple[int, int], float]:
+    def find_center_and_radius(self, frame: np.array) -> Tuple[Tuple[int, int], float]:
         '''Finds the center and radius from the frame
 
         First attempts to find the projectile's center and radius using a colour mask
@@ -210,16 +204,11 @@ class BallClassifier:
             center, radius = self.find_center_and_radius(frame)
 
             if center is not None and radius is not None:
-                cv2.circle(img=frame, center=center, radius=int(
-                    radius), color=(0, 255, 0), thickness=2)
-                cv2.circle(img=frame, center=center, radius=2,
-                           color=(255, 0, 0), thickness=2)
+                cv2.circle(img=frame, center=center, radius=int(radius), color=(0, 255, 0), thickness=2)
+                cv2.circle(img=frame, center=center, radius=2, color=(255, 0, 0), thickness=2)
                 if self.debug:
                     self.record.append((center, radius))
-                    screenDebug(
-                        frame,
-                        f"radius(px): {radius:.4f}",
-                        f"position: {center}")
+                    screenDebug(frame, f"radius(px): {radius:.4f}", f"position: {center}")
 
             if self.imgiter is not None:
                 while True:
