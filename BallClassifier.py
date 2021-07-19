@@ -231,10 +231,8 @@ class BallClassifier:
 
 def configure_args() -> dict:
     ap = argparse.ArgumentParser()
-    ap.add_argument("-d", "--debug", action="store_true",
-                    help="Show debug information", default=True)
-    ap.add_argument("-v", "--video",
-                    help="path to the (optional) video file", default=0)
+    ap.add_argument("-d", "--debug", action="store_true", help="Show debug information", default=True)
+    ap.add_argument("-v", "--video", help="path to the (optional) video file", default=0)
     return vars(ap.parse_args())
 
 

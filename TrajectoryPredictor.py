@@ -181,8 +181,7 @@ class TrajectoryPredictor:
         '''
         # Our calculations must be done with unflipped y axes
         points[:, 1] *= -1.0
-        pts, jac = cv2.projectPoints(
-            points, rvec, tvec, self.camera_matrix, self.dist)
+        pts, jac = cv2.projectPoints(points, rvec, tvec, self.camera_matrix, self.dist)
         cv2.polylines(frame, np.int32([pts]), 0, (0, 255, 0))
         # Draw each point
         for pt in pts:

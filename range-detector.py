@@ -28,15 +28,11 @@ def setup_trackbars(range_filter):
 
 def get_arguments():
     ap = argparse.ArgumentParser()
-    ap.add_argument('-f', '--filter', required=False,
-                    help='Range filter. RGB or HSV', default='HSV')
-    ap.add_argument('-i', '--image', required=False,
-                    help='Path to the image')
-    ap.add_argument('-w', '--webcam', required=False,
-                    help='Use webcam', action='store_true', default=True)
+    ap.add_argument('-f', '--filter', required=False, help='Range filter. RGB or HSV', default='HSV')
+    ap.add_argument('-i', '--image', required=False, help='Path to the image')
+    ap.add_argument('-w', '--webcam', required=False, help='Use webcam', action='store_true', default=True)
     ap.add_argument('-p', '--preview', required=False,
-                    help='Show a preview of the image after applying the mask',
-                    action='store_true')
+                    help='Show a preview of the image after applying the mask', action='store_true')
     args = vars(ap.parse_args())
 
     if not xor(bool(args['image']), bool(args['webcam'])):
@@ -88,8 +84,7 @@ def main():
             else:
                 frame_to_thresh = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
 
-        v1_min, v2_min, v3_min, v1_max, v2_max, v3_max = get_trackbar_values(
-            range_filter)
+        v1_min, v2_min, v3_min, v1_max, v2_max, v3_max = get_trackbar_values(range_filter)
 
         thresh = cv2.inRange(
             frame_to_thresh, (v1_min, v2_min, v3_min), (v1_max, v2_max, v3_max))
