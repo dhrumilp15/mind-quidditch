@@ -24,8 +24,7 @@ def calibrate_camera() -> Tuple[np.array, np.array, np.array, np.array]:
         tvecs = np.load('calibrate_images/tvecs.npy')
     except (OSError, FileNotFoundError) as error:
         # termination criteria
-        criteria = (cv2.TERM_CRITERIA_EPS +
-                    cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
+        criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
 
         # prepare object points, like (0,0,0), (1,0,0), (2,0,0) ....,(6,5,0)
         pattern_size = (9, 6)
@@ -38,9 +37,7 @@ def calibrate_camera() -> Tuple[np.array, np.array, np.array, np.array]:
         objpoints = []  # 3d point in real world space
         imgpoints = []  # 2d points in image plane.
         count = 0
-        images = [
-            "calibrate_images/" +
-            name for name in os.listdir("./calibrate_images/") if name.endswith(".jpg")]
+        images = ["calibrate_images/" + name for name in os.listdir("./calibrate_images/") if name.endswith(".jpg")]
         # logging.info(images)
 
         for fname in images:
@@ -55,15 +52,13 @@ def calibrate_camera() -> Tuple[np.array, np.array, np.array, np.array]:
             # If found, add object points, image points (after refining them)
             if ret:
                 count += 1
-                corners = cv2.cornerSubPix(
-                    gray, corners, (5, 5), (-1, -1), criteria)
+                corners = cv2.cornerSubPix(gray, corners, (5, 5), (-1, -1), criteria)
                 imgpoints.append(corners.reshape(-1, 2))
                 objpoints.append(objp)
             else:
                 print(f'Couldn\'t find corners for {fname}!')
         print(f"Found Chessboard Corners for {count} images")
-        ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(
-            objpoints, imgpoints, gray.shape[::-1], None, None)
+        ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(objpoints, imgpoints, gray.shape[::-1], None, None)
         logging.info(f'''
         ---------------------------
             Camera Matrix:
